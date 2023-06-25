@@ -31,6 +31,6 @@ function onReady() {
     }
   })
 
-  win.loadURL("http://localhost:3000/app");
+  win.loadURL("http://localhost:3000/login");
   // win.loadURL("https://nerimity.com");
 }
