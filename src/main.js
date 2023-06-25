@@ -1,4 +1,5 @@
 const { app, BrowserWindow } = require("electron");
+const path = require("path");
 
 app.whenReady().then(onReady)
 
@@ -14,7 +15,11 @@ function onReady() {
     height: 600,
     center: true,
     frame: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js')
+    }
   })
 
-  win.loadURL("https://nerimity.com");
+  win.loadURL("http://localhost:3000/app");
+  // win.loadURL("https://nerimity.com");
 }
