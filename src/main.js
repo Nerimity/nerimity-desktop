@@ -1,40 +1,30 @@
 const { app, BrowserWindow } = require("electron");
-const path = require("path");
-const store = require("./store");
+const { openMainWindow, getMainWindow } = require("./mainWindow");
+const { setTray, getTray } = require("./tray");
 
-app.whenReady().then(onReady)
+const singleInstanceLock = app.requestSingleInstanceLock()
 
-/**
- * @type { BrowserWindow }
- */
-let win = null;
-
+app.on('second-instance', (event, argv, cwd) => {
+  if (!getMainWindow()) return;
+  getMainWindow().show();
+  if (getMainWindow().isMinimized()) getMainWindow().restore();
+  getMainWindow().focus();
+})
 
 function onReady() {
-  win = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    center: true,
-    frame: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-    }
-  })
-
-  win.webContents.ipc.on("window-minimize", () => win.minimize())
-  win.webContents.ipc.on("window-close", () => win.close())
-
-  win.webContents.ipc.handle("get-autostart", (event) => store.getAutostart())
-  win.webContents.ipc.on("set-autostart", (event, value) => store.setAutostart(value))
-
-  win.webContents.ipc.on("window-toggle-maximize", () => {
-    if (win.isMaximized()) {
-      win.unmaximize();
-    } else {
-      win.maximize();
-    }
-  })
-
-  win.loadURL("http://localhost:3000/login");
-  // win.loadURL("https://nerimity.com");
+  if (!singleInstanceLock){
+    app.quit();
+    return;
+  }
+  setTray();
+  openMainWindow();
 }
+app.whenReady().then(onReady)
+
+app.on('window-all-closed', () => {
+  getTray().destroy();
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})
+

@@ -6,7 +6,10 @@ contextBridge.exposeInMainWorld('WindowAPI', {
   toggleMaximize: () => ipcRenderer.send("window-toggle-maximize"),
   close: () => ipcRenderer.send("window-close"),
 
-  getAutostart: (key) => ipcRenderer.invoke('get-autostart'),
-  setAutostart: (value) => ipcRenderer.send('set-autostart', value)
+  getAutostart: () => ipcRenderer.invoke('get-autostart'),
+  setAutostart: (value) => ipcRenderer.send('set-autostart', value),
+
+  getAutostartMinimized: () => ipcRenderer.invoke('get-autostart-minimized'),
+  setAutostartMinimized: (value) => ipcRenderer.send('set-autostart-minimized', value)
 
 })
