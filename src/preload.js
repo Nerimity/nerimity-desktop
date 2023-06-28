@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('WindowAPI', {
   setAutostart: (value) => ipcRenderer.send('set-autostart', value),
 
   getAutostartMinimized: () => ipcRenderer.invoke('get-autostart-minimized'),
-  setAutostartMinimized: (value) => ipcRenderer.send('set-autostart-minimized', value)
+  setAutostartMinimized: (value) => ipcRenderer.send('set-autostart-minimized', value),
+
+  setNotification: (value) => ipcRenderer.send('set-notification', value)
 
 })

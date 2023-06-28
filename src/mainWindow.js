@@ -1,7 +1,8 @@
 const { BrowserWindow, app, shell } = require("electron")
 const path = require("path");
 const store = require("./store");
-const { icon } = require("./icon");
+const { icon, setIcon, notificationIcon } = require("./icon");
+const { getTray } = require("./tray");
 const args = process.argv;
 const startupMinimized = args.includes('--hidden')
 
@@ -36,6 +37,9 @@ function openMainWindow() {
   mainWindow.webContents.ipc.on("window-toggle-maximize", () => {
     if (mainWindow.isMaximized()) return mainWindow.unmaximize();   
     mainWindow.maximize();
+  })
+  mainWindow.webContents.ipc.on("set-notification", (event, value) => {
+    setIcon(mainWindow, getTray(), value ? notificationIcon : icon)
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
