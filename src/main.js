@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require("electron");
 const path = require("path");
+const store = require("./store");
 
 app.whenReady().then(onReady)
 
@@ -22,6 +23,9 @@ function onReady() {
 
   win.webContents.ipc.on("window-minimize", () => win.minimize())
   win.webContents.ipc.on("window-close", () => win.close())
+
+  win.webContents.ipc.handle("get-autostart", (event) => store.getAutostart())
+  win.webContents.ipc.on("set-autostart", (event, value) => store.setAutostart(value))
 
   win.webContents.ipc.on("window-toggle-maximize", () => {
     if (win.isMaximized()) {

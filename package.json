@@ -13,5 +13,8 @@
   "devDependencies": {
     "electron": "^25.2.0",
     "nodemon": "^2.0.22"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
   }
 }
