@@ -60,7 +60,7 @@ function openMainWindow() {
     mainWindow.loadURL("http://localhost:3000/login");
     mainWindow.webContents.openDevTools({mode: 'detach'})
   } else {
-    mainWindow.loadURL("https://nerimity.com");
+    mainWindow.loadURL("https://nerimity.com/login");
   }
 }
 
