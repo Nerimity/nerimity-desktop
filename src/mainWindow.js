@@ -3,6 +3,7 @@ const path = require("path");
 const store = require("./store");
 const { icon, setIcon, notificationIcon } = require("./icon");
 const { getTray } = require("./tray");
+const { isPacked } = require("./utils");
 const args = process.argv;
 const startupMinimized = args.includes('--hidden')
 
@@ -55,8 +56,11 @@ function openMainWindow() {
     return false;
   });
 
-  mainWindow.loadURL("http://localhost:3000/login");
-  // win.loadURL("https://nerimity.com");
+  if (!isPacked()) {
+    mainWindow.loadURL("http://localhost:3000/login");
+  } else {
+    mainWindow.loadURL("https://nerimity.com");
+  }
 }
 
 module.exports = {
