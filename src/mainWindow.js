@@ -30,10 +30,16 @@ function openMainWindow() {
   mainWindow.webContents.ipc.on("window-close", () => mainWindow.hide())
 
   mainWindow.webContents.ipc.handle("get-autostart", (event) => store.getAutostart())
-  mainWindow.webContents.ipc.on("set-autostart", (event, value) => store.setAutostart(value))
+  mainWindow.webContents.ipc.on("set-autostart", (event, value) => {
+    store.setAutostart(value)
+    setStartup();
+  })
 
   mainWindow.webContents.ipc.handle("get-autostart-minimized", (event) => store.getAutostartMinimized())
-  mainWindow.webContents.ipc.on("set-autostart-minimized", (event, value) => store.setAutostartMinimized(value))
+  mainWindow.webContents.ipc.on("set-autostart-minimized", (event, value) => {
+    store.setAutostartMinimized(value)
+    setStartup();
+  })
 
   mainWindow.webContents.ipc.on("window-toggle-maximize", () => {
     if (mainWindow.isMaximized()) return mainWindow.unmaximize();   
