@@ -1,6 +1,6 @@
 {
   "name": "nerimity-desktop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "repository": "https://github.com/Nerimity/nerimity-desktop",
