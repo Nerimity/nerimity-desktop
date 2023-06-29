@@ -1,6 +1,8 @@
 const { app, BrowserWindow } = require("electron");
 const { openMainWindow, getMainWindow } = require("./mainWindow");
 const { setTray, getTray } = require("./tray");
+const { isPacked } = require("./utils");
+const { openUpdaterWindow } = require("./updaterWindow");
 
 const singleInstanceLock = app.requestSingleInstanceLock()
 
@@ -17,7 +19,11 @@ function onReady() {
     return;
   }
   setTray();
-  openMainWindow();
+  if (isPacked()) {
+    openUpdaterWindow();
+  } else {
+    openMainWindow();
+  }
 }
 app.whenReady().then(onReady)
 

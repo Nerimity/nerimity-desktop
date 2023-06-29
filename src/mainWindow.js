@@ -22,7 +22,7 @@ function openMainWindow() {
     show: !startupMinimized,
     icon: icon,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, "preloaders", 'mainPreloader.js'),
     }
   })
 

@@ -3,19 +3,17 @@
   "version": "1.0.0",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Nerimity/nerimity-desktop.git"
-  },
+  "repository": "https://github.com/Nerimity/nerimity-desktop",
   "scripts": {
     "start": "electron .",
     "dev": "nodemon --watch * --exec electron .",
     "publish-win": "electron-builder --win -p always",
-    "pack": "electron-builder --dir",
-    "dist-win": "electron-builder"
+    "app:dir": "electron-builder --dir",
+    "app:dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
   "keywords": [],
-  "author": "",
+  "author": "SupertigerDev",
   "license": "ISC",
   "devDependencies": {
     "electron": "^25.2.0",
@@ -25,17 +23,14 @@
   "build": {
     "appId": "nerimity.com",
     "productName": "Nerimity",
-    "publisherName": "SupertigerDev",
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
     },
-    "publish": [
-      {
-        "provider": "github",
-        "releaseType": "release"
-      }
-    ],
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    },
     "files": [
       "**/*",
       "build/icon.ico",
@@ -43,6 +38,7 @@
     ]
   },
   "dependencies": {
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.1"
   }
 }
