@@ -47,6 +47,14 @@ function openMainWindow() {
     return { action: 'deny' }
   })
 
+  mainWindow.on('close', function (event) {
+    if(!app.isQuitting){
+        event.preventDefault();
+        mainWindow.hide();
+    }
+    return false;
+  });
+
   mainWindow.loadURL("http://localhost:3000/login");
   // win.loadURL("https://nerimity.com");
 }

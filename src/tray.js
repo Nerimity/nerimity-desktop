@@ -1,5 +1,4 @@
 const { Tray, Menu, app } = require("electron");
-const { getMainWindow } = require("./mainWindow");
 const { icon } = require("./icon");
 
 /**
@@ -8,6 +7,7 @@ const { icon } = require("./icon");
 let tray = null;
 
 const contextMenu = () => {
+  const {getMainWindow} = require("./mainWindow");
   return Menu.buildFromTemplate([
     {
       label: 'Show App', click: function () {
@@ -16,6 +16,7 @@ const contextMenu = () => {
     },
     {
       label: 'Quit', click: function () {
+        app.isQuitting = true;
         getMainWindow()?.close()
         getMainWindow()?.destroy()
         app.quit();
@@ -25,6 +26,7 @@ const contextMenu = () => {
 }
 
 function setTray() {
+  const {getMainWindow} = require("./mainWindow");
   tray = new Tray(icon);
   tray.setToolTip('Nerimity');
   tray.setContextMenu(contextMenu())
