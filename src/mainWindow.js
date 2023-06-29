@@ -58,6 +58,7 @@ function openMainWindow() {
 
   if (!isPacked()) {
     mainWindow.loadURL("http://localhost:3000/login");
+    mainWindow.webContents.openDevTools({mode: 'detach'})
   } else {
     mainWindow.loadURL("https://nerimity.com");
   }
