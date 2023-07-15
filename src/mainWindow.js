@@ -1,4 +1,4 @@
-const { BrowserWindow, app, shell } = require("electron")
+const { BrowserWindow, app, shell, desktopCapturer } = require("electron")
 const path = require("path");
 const store = require("./store");
 const { icon, setIcon, notificationIcon } = require("./icon");
@@ -34,13 +34,13 @@ function openMainWindow() {
     store.setAutostart(value)
     setStartup();
   })
-
+  
   mainWindow.webContents.ipc.handle("get-autostart-minimized", (event) => store.getAutostartMinimized())
   mainWindow.webContents.ipc.on("set-autostart-minimized", (event, value) => {
     store.setAutostartMinimized(value)
     setStartup();
   })
-
+  
   mainWindow.webContents.ipc.on("window-toggle-maximize", () => {
     if (mainWindow.isMaximized()) return mainWindow.unmaximize();   
     mainWindow.maximize();
@@ -48,10 +48,22 @@ function openMainWindow() {
   mainWindow.webContents.ipc.on("set-notification", (event, value) => {
     setIcon(mainWindow, getTray(), value ? notificationIcon : icon)
   })
-
+  
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
     return { action: 'deny' }
+  })
+
+  mainWindow.webContents.ipc.handle("get-desktop-capture-sources", async (event) => {
+    const sources = await desktopCapturer.getSources({
+      types: ["window", "screen"],
+      thumbnailSize: {height: 400, width: 400}
+    });
+    return sources.map(source => ({
+      id: source.id,
+      name: source.name,
+      thumbnailUrl: source.thumbnail.toDataURL()
+    }));
   })
 
   mainWindow.on('close', function (event) {
