@@ -3,7 +3,7 @@ const path = require("path");
 const store = require("./store");
 const { icon, setIcon, notificationIcon } = require("./icon");
 const { getTray } = require("./tray");
-const { isPacked } = require("./utils");
+const { isPacked, getAllRunningPrograms, startActivityListener } = require("./utils");
 const args = process.argv;
 const startupMinimized = args.includes('--hidden')
 
@@ -64,6 +64,13 @@ function openMainWindow() {
       name: source.name,
       thumbnailUrl: source.thumbnail.toDataURL()
     }));
+  })
+
+  mainWindow.webContents.ipc.handle("get-running-programs", async (event, ignoredPrograms = []) => {
+    return await getAllRunningPrograms(ignoredPrograms)
+  })
+  mainWindow.webContents.ipc.on("restart-activity-status",  (event, listenToPrograms = []) => {
+    startActivityListener(listenToPrograms, mainWindow)
   })
 
   mainWindow.on('close', function (event) {
