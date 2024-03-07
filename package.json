@@ -1,6 +1,6 @@
 {
   "name": "nerimity-desktop",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "repository": "https://github.com/Nerimity/nerimity-desktop",
@@ -16,9 +16,9 @@
   "author": "SupertigerDev",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^27.0.0",
-    "electron-builder": "^24.4.0",
-    "nodemon": "^3.0.1"
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3",
+    "nodemon": "^3.1.0"
   },
   "build": {
     "appId": "nerimity.com",
@@ -40,6 +40,6 @@
   "dependencies": {
     "@nerimity/active-window-listener": "^1.2.1",
     "electron-store": "^8.1.0",
-    "electron-updater": "^6.1.1"
+    "electron-updater": "^6.1.8"
   }
 }
