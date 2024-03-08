@@ -74,14 +74,14 @@ let processListener;
 async function startActivityListener(listenToPrograms = [], browserWindow) {
 	const programNameArr = listenToPrograms.map(p => p.filename);
   if (processListener) {
-    if (rpcServer.RPCs.length) return;
+    if (rpcServer?.RPCs?.length) return;
     processListener.updateExecutableFilenames(programNameArr);
     handleWindow(processListener.lastActiveWindow(), browserWindow);
     return;
   }
 	processListener = new ProcessListener(programNameArr);
 	processListener.on("change", window => {
-    if (rpcServer.RPCs.length) return;
+    if (rpcServer?.RPCs?.length) return;
     handleWindow(window, browserWindow);
 	})
 };
