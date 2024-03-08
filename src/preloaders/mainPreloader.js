@@ -20,8 +20,12 @@ contextBridge.exposeInMainWorld('WindowAPI', {
 
 
   restartActivityStatus: (listeningPrograms) => ipcRenderer.send('restart-activity-status', listeningPrograms),
+  restartRPCServer: () => ipcRenderer.send('restart-rpc-server'),
+  rpcChanged: (callback) => ipcRenderer.on('rpc-changed', (event, val) => callback(val)),
 
   activityStatusChanged: (callback) => ipcRenderer.on('activity-status-changed', (event, val) => callback(val)),
+
+  relaunchApp: () => ipcRenderer.send('relaunch-app'),
 
 
 })

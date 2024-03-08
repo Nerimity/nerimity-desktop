@@ -3,7 +3,7 @@ const path = require("path");
 const store = require("./store");
 const { icon, setIcon, notificationIcon } = require("./icon");
 const { getTray } = require("./tray");
-const { isPacked, getAllRunningPrograms, startActivityListener } = require("./utils");
+const { isPacked, getAllRunningPrograms, startActivityListener, startRPCServer, stopRPCServer } = require("./utils");
 const args = process.argv;
 const startupMinimized = args.includes('--hidden')
 
@@ -12,7 +12,7 @@ const startupMinimized = args.includes('--hidden')
  */
 let mainWindow = null;
 
-function openMainWindow() {
+async function openMainWindow() {
   setStartup();
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -26,6 +26,11 @@ function openMainWindow() {
     }
   })
 
+  mainWindow.webContents.ipc.on("relaunch-app", () => {
+    stopRPCServer();
+    app.relaunch()
+    app.exit()
+  })
   mainWindow.webContents.ipc.on("window-minimize", () => mainWindow.minimize())
   mainWindow.webContents.ipc.on("window-close", () => mainWindow.hide())
 
@@ -69,8 +74,22 @@ function openMainWindow() {
   mainWindow.webContents.ipc.handle("get-running-programs", async (event, ignoredPrograms = []) => {
     return await getAllRunningPrograms(ignoredPrograms)
   })
+
+
+  if (!isPacked()) {
+    await mainWindow.loadURL("http://localhost:3000/login");
+    mainWindow.webContents.openDevTools({mode: 'detach'})
+  } else {
+    await mainWindow.loadURL("https://nerimity.com/login");
+  }
+
+  const userToken = await getUserToken();
+
   mainWindow.webContents.ipc.on("restart-activity-status",  (event, listenToPrograms = []) => {
     startActivityListener(listenToPrograms, mainWindow)
+  })
+  mainWindow.webContents.ipc.on("restart-rpc-server",  () => {
+    startRPCServer(mainWindow, userToken)
   })
 
   mainWindow.on('close', function (event) {
@@ -81,17 +100,23 @@ function openMainWindow() {
     return false;
   });
 
-  if (!isPacked()) {
-    mainWindow.loadURL("http://localhost:3000/login");
-    mainWindow.webContents.openDevTools({mode: 'detach'})
-  } else {
-    mainWindow.loadURL("https://nerimity.com/login");
-  }
+
+
+
+
+
+}
+
+const getUserToken = async () => {
+  const token =  await mainWindow.webContents
+   .executeJavaScript('localStorage.getItem("userToken");', true);
+   return token; 
 }
 
 module.exports = {
   openMainWindow,
   getMainWindow: () => mainWindow,
+  getUserToken
 };
 
 function setStartup() {

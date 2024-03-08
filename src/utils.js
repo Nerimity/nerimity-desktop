@@ -3,7 +3,7 @@ const process = require("process");
 const {BrowserWindow} = require("electron")
 
 const { getWindows, ProcessListener } = require("@nerimity/active-window-listener");
-
+const RPCServer = require("./rpc/WebSocket");
 /**
  * Checks if the application is packed or not.
  *
@@ -56,6 +56,12 @@ async function getAllRunningPrograms(storedPrograms = []) {
 
 
 /**
+ * @type {RPCServer | undefined}
+ */
+let rpcServer;
+
+
+/**
  * @type {ProcessListener | undefined}
  */
 let processListener;
@@ -68,15 +74,16 @@ let processListener;
 async function startActivityListener(listenToPrograms = [], browserWindow) {
 	const programNameArr = listenToPrograms.map(p => p.filename);
   if (processListener) {
+    if (rpcServer.RPCs.length) return;
     processListener.updateExecutableFilenames(programNameArr);
     handleWindow(processListener.lastActiveWindow(), browserWindow);
     return;
   }
 	processListener = new ProcessListener(programNameArr);
 	processListener.on("change", window => {
+    if (rpcServer.RPCs.length) return;
     handleWindow(window, browserWindow);
 	})
-
 };
 
 function handleWindow(window, browserWindow) {
@@ -87,4 +94,35 @@ function handleWindow(window, browserWindow) {
   });
 }
 
-module.exports = { isPacked, getAllRunningPrograms, startActivityListener };
+
+
+
+/**
+ *
+ * @param {BrowserWindow} browserWindow
+ */
+async function startRPCServer(browserWindow, userToken) {
+  if (rpcServer) {
+    handleRPC(rpcServer.RPCs[0]?.data, browserWindow);
+    return;
+  }
+
+  rpcServer = new RPCServer(userToken, isPacked());
+  rpcServer.serve();
+  rpcServer.on("RPC_UPDATE", (data) => {
+    handleRPC(data, browserWindow);
+  })
+
+}
+async function stopRPCServer() {
+  rpcServer.destroy();
+  rpcServer = undefined;
+}
+
+function handleRPC(data, browserWindow) {
+  if (!data) return browserWindow.webContents.send('rpc-changed', false)
+  browserWindow.webContents.send('rpc-changed', data);
+}
+
+
+module.exports = { isPacked, getAllRunningPrograms, startActivityListener, startRPCServer, stopRPCServer};
