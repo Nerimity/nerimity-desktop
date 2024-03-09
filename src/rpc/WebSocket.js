@@ -157,6 +157,7 @@ const sanitizedData = (data) => {
     imgSrc: data.imgSrc?.substring(0, 250),
     title: data.title?.substring(0, 30),
     subtitle: data.subtitle?.substring(0, 30),
+    link: data.link.substring(0, 250),
     startedAt: data.startedAt,
     endsAt: data.endsAt,
   }))
