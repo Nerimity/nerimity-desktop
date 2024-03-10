@@ -47,7 +47,7 @@ class WebSocketRPCServer extends EventEmitter {
     this.emit("RPC_UPDATE", firstRPC.data);
   }
   serve(port = PORT_RANGES[0]) {
-    this.ws = new WebSocket.Server({ port });
+    this.ws = new WebSocket.Server({ port, host: "localhost"});
 
     this.ws.on("listening", () => {
       Log(`Listening on port ${port}`);
