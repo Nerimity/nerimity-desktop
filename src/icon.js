@@ -1,20 +1,42 @@
-const { nativeImage } = require("electron");
+const os = require("os");
 const path = require("path");
+const {nativeImage,} = require("electron");
 
-const iconPath = path.join(__dirname, '../build/icon.ico');
-const notificationIconPath = path.join(__dirname, '../build/notification_icon.ico');
+let iconPath;
+let notificationIconPath;
 
-const icon = nativeImage.createFromPath(iconPath);
-const notificationIcon = nativeImage.createFromPath(notificationIconPath);
+if (os.type == 'Windows_NT') {
+    iconPath = path.join(__dirname, '../build/icon.ico');
+    notificationIconPath = path.join(__dirname, '../build/notification_icon.ico');
+} else {
+    iconPath = path.join(__dirname, '../build/icon.png');
+    notificationIconPath = path.join(__dirname, '../build/notification_icon.png');
+}
+
+const appIcon = nativeImage.createFromPath(iconPath);
+const appNotificationIcon = nativeImage.createFromPath(notificationIconPath);
 
 
-function setIcon(window, tray, icon) {
-  window && window.setIcon(icon)
-  tray && tray.setImage(icon)
+/**
+ *
+* @param {{window?: import("electron").BrowserWindow, tray?: import("electron").Tray, type: "NORMAL" | "NOTIFICATION"}} opts
+ */
+function setAppIcon(opts) {
+
+    const iconMap = {
+        "NORMAL": appIcon,
+        "NOTIFICATION": appNotificationIcon
+    }
+
+    const icon = iconMap[opts.type]
+    
+    opts.window?.setIcon(icon)
+    opts.tray?.setImage(icon)
+
 }
 
 module.exports = {
-  icon, 
-  notificationIcon,
-  setIcon
+    appIcon,
+    setAppIcon
+    
 }

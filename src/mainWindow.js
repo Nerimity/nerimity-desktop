@@ -1,7 +1,7 @@
 const { BrowserWindow, app, shell, desktopCapturer } = require("electron")
 const path = require("path");
 const store = require("./store");
-const { icon, setIcon, notificationIcon } = require("./icon");
+const { setAppIcon, appIcon } = require("./icon");
 const { getTray } = require("./tray");
 const { isPacked, getAllRunningPrograms, startActivityListener, startRPCServer, stopRPCServer } = require("./utils");
 const args = process.argv;
@@ -20,7 +20,7 @@ async function openMainWindow() {
     center: true,
     frame: false,
     show: !startupMinimized,
-    icon: icon,
+    icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, "preloaders", 'mainPreloader.js'),
     }
@@ -51,7 +51,11 @@ async function openMainWindow() {
     mainWindow.maximize();
   })
   mainWindow.webContents.ipc.on("set-notification", (event, value) => {
-    setIcon(mainWindow, getTray(), value ? notificationIcon : icon)
+    setAppIcon({
+      window: mainWindow,
+      tray: getTray(),
+      type: value ? "NOTIFICATION" : "NORMAL"
+    })
   })
   
   mainWindow.webContents.setWindowOpenHandler((details) => {

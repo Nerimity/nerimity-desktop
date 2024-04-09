@@ -1,7 +1,7 @@
 const { BrowserWindow, dialog } = require("electron")
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
-const { icon, } = require("./icon");
+const { appIcon, } = require("./icon");
 const mainWindow = require("./mainWindow");
 const args = process.argv;
 const startupMinimized = args.includes('--hidden')
@@ -18,7 +18,7 @@ function openUpdaterWindow() {
     center: true,
     frame: false,
     show: !startupMinimized,
-    icon: icon,
+    icon: appIcon,
     webPreferences: {
       preload: path.join(__dirname, "preloaders", 'updaterPreloader.js'),
     }

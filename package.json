@@ -27,6 +27,13 @@
       "target": "nsis",
       "icon": "build/icon.ico"
     },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Network",
+      "icon": "build/icon.png"
+    },
     "publish": {
       "provider": "github",
       "releaseType": "release"

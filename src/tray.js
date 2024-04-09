@@ -1,5 +1,5 @@
 const { Tray, Menu, app } = require("electron");
-const { icon } = require("./icon");
+const { appIcon } = require("./icon");
 
 /**
  * @type { Tray }
@@ -27,7 +27,7 @@ const contextMenu = () => {
 
 function setTray() {
   const {getMainWindow} = require("./mainWindow");
-  tray = new Tray(icon);
+  tray = new Tray(appIcon);
   tray.setToolTip('Nerimity');
   tray.setContextMenu(contextMenu())
   tray.setIgnoreDoubleClickEvents(true);
