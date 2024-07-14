@@ -48,6 +48,7 @@
     "@nerimity/active-window-listener": "^1.2.1",
     "electron-store": "^8.1.0",
     "electron-updater": "^6.1.8",
+    "portfinder": "^1.0.32",
     "ws": "^8.16.0"
   }
 }

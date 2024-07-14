@@ -1,3 +1,5 @@
+var portfinder = require('portfinder');
+
 const WebSocket = require('ws');
 const {EventEmitter} = require("events");
 
@@ -46,7 +48,13 @@ class WebSocketRPCServer extends EventEmitter {
     }
     this.emit("RPC_UPDATE", firstRPC.data);
   }
-  serve(port = PORT_RANGES[0]) {
+  async serve() {
+    const port = await portfinder.getPortPromise({
+      port:  PORT_RANGES[0],
+      stopPort: PORT_RANGES[1]
+    }).catch(() => undefined);
+    if (!port) return this.portFailed();
+  
     this.ws = new WebSocket.Server({ port, host: "localhost"});
 
     this.ws.on("listening", () => {
@@ -105,18 +113,12 @@ class WebSocketRPCServer extends EventEmitter {
     })
 
     this.ws.on("error", (err) => {
-      if (err.code === "EADDRINUSE") {
-        this.ws.removeAllListeners();
-        if (port >= PORT_RANGES[1]) {
-          Log("All ports are in use, giving up :(");
-          return;
-        }
-        Log("Port is in use, trying next port...");
-        this.serve(port + 1);
-        return;
-      }
       console.error(err);
     });
+  }
+  portFailed () {
+    this.ws?.removeAllListeners?.();
+    Log("All ports are in use, giving up :(");
   }
   destroy() {
     if (this.ws) {
