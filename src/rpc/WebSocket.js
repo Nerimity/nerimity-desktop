@@ -162,7 +162,7 @@ const sanitizedData = (data) => {
     link: data.link?.substring(0, 250),
     startedAt: data.startedAt,
     endsAt: data.endsAt,
-    speed: data.speed
+    speed: data.speed,
   }))
 }
 
