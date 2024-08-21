@@ -1,17 +1,17 @@
-var portfinder = require('portfinder');
+var portfinder = require("portfinder");
 
-const WebSocket = require('ws');
-const {EventEmitter} = require("events");
+const WebSocket = require("ws");
+const { EventEmitter } = require("events");
 
 const PORT_RANGES = [6463, 6472];
 
 class WebSocketRPCServer extends EventEmitter {
   constructor(userToken, isPacked) {
-    super()
+    super();
     this.ws = null;
     this.RPCs = [];
-    this.userToken = userToken
-    this.isPacked = isPacked
+    this.userToken = userToken;
+    this.isPacked = isPacked;
   }
   updateRPC(id, data) {
     if (!data) return this.removeRPC(id);
@@ -19,8 +19,8 @@ class WebSocketRPCServer extends EventEmitter {
     if (index === -1) {
       this.RPCs.push({
         id,
-        data: sanitizedData(data)
-      })
+        data: sanitizedData(data),
+      });
       if (this.RPCs.length === 1) this.emitEvent();
       return;
     }
@@ -49,47 +49,51 @@ class WebSocketRPCServer extends EventEmitter {
     this.emit("RPC_UPDATE", firstRPC.data);
   }
   async serve() {
-    const port = await portfinder.getPortPromise({
-      port:  PORT_RANGES[0],
-      stopPort: PORT_RANGES[1]
-    }).catch(() => undefined);
+    const port = await portfinder
+      .getPortPromise({
+        port: PORT_RANGES[0],
+        stopPort: PORT_RANGES[1],
+      })
+      .catch(() => undefined);
     if (!port) return this.portFailed();
-  
-    this.ws = new WebSocket.Server({ port, host: "localhost"});
+
+    this.ws = new WebSocket.Server({ port, host: "localhost" });
 
     this.ws.on("listening", () => {
       Log(`Listening on port ${port}`);
     });
     this.ws.on("connection", async (client, req) => {
       if (!this.userToken) {
-        Log("No User Token")
+        Log("No User Token");
         client.close();
         return;
       }
       const appId = getAppId(req.url);
       if (!appId) {
-        Log("No App Id")
+        Log("No App Id");
         client.close();
         return;
       }
-      const validAppId = await checkAppId(appId, this.userToken, this.isPacked)
+      const validAppId = await checkAppId(appId, this.userToken, this.isPacked);
       if (!validAppId) {
-        Log("Invalid App Id")
+        Log("Invalid App Id");
         client.close();
         return;
       }
-      Log("Connected!")
+      Log("Connected!");
       let greeted = false;
-      let id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      let id =
+        Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15);
       let greetedTimeoutId = setTimeout(() => {
         client.close();
       }, 2000);
 
-
-
-      client.send(JSON.stringify({
-        name: 'HELLO_NERIMITY_RPC'
-      }))
+      client.send(
+        JSON.stringify({
+          name: "HELLO_NERIMITY_RPC",
+        })
+      );
 
       client.onmessage = (event) => {
         const payload = safeParseJson(event.data);
@@ -105,18 +109,17 @@ class WebSocketRPCServer extends EventEmitter {
           this.updateRPC(id, payload.data);
           Log("Received UPDATE_RPC", payload.data);
         }
-      }
+      };
       client.onclose = () => {
         this.updateRPC(id, null);
-      }
-
-    })
+      };
+    });
 
     this.ws.on("error", (err) => {
       console.error(err);
     });
   }
-  portFailed () {
+  portFailed() {
     this.ws?.removeAllListeners?.();
     Log("All ports are in use, giving up :(");
   }
@@ -129,13 +132,12 @@ class WebSocketRPCServer extends EventEmitter {
 }
 
 function JSONCompare(a, b) {
-  return JSON.stringify(a) === JSON.stringify(b)
+  return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function Log (...args) {
-  console.log("RPC WS>", ...args)
+function Log(...args) {
+  console.log("RPC WS>", ...args);
 }
-
 
 const safeParseJson = (str) => {
   try {
@@ -143,8 +145,7 @@ const safeParseJson = (str) => {
   } catch (e) {
     return null;
   }
-}
-
+};
 
 const sanitizedData = (data) => {
   // name: "Spotify",
@@ -153,35 +154,41 @@ const sanitizedData = (data) => {
   // title: data.title,
   // subtitle: data.subtitle
   // startedAt: data.startedAt
-  return JSON.parse(JSON.stringify({
-    name: data.name?.substring(0, 30),
-    action: data.action?.substring(0, 20),
-    imgSrc: data.imgSrc?.substring(0, 250),
-    title: data.title?.substring(0, 30),
-    subtitle: data.subtitle?.substring(0, 30),
-    link: data.link?.substring(0, 250),
-    startedAt: data.startedAt,
-    endsAt: data.endsAt,
-    speed: data.speed,
-  }))
-}
+  return JSON.parse(
+    JSON.stringify({
+      name: data.name?.substring(0, 30),
+      action: data.action?.substring(0, 20),
+      imgSrc: data.imgSrc?.substring(0, 250),
+      title: data.title?.substring(0, 30),
+      subtitle: data.subtitle?.substring(0, 30),
+      link: data.link?.substring(0, 250),
+      startedAt: data.startedAt,
+      updatedAt: data.updatedAt,
+      endsAt: data.endsAt,
+      speed: data.speed,
+    })
+  );
+};
 
-const checkAppId =  async (appId, token, isPacked) => {
+const checkAppId = async (appId, token, isPacked) => {
   let url = `https://nerimity.com/api/applications/${appId}/exists`;
   if (!isPacked) {
-    url = `http://localhost:8080/api/applications/${appId}/exists`
+    url = `http://localhost:8080/api/applications/${appId}/exists`;
   }
-  const res = await fetch(url, {method: "HEAD", headers: {
-    "Authorization": token
-  }}).catch(() => {});
+  const res = await fetch(url, {
+    method: "HEAD",
+    headers: {
+      Authorization: token,
+    },
+  }).catch(() => {});
 
   return res?.status === 200;
-}
+};
 
 const getAppId = (url) => {
   const params = new URLSearchParams(url.substring(1));
   const appId = params.get("appId");
   return appId;
-}
+};
 
-module.exports = WebSocketRPCServer
+module.exports = WebSocketRPCServer;
