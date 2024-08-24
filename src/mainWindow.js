@@ -35,6 +35,7 @@ async function openMainWindow() {
     show: !startupMinimized,
     icon: appIcon,
     webPreferences: {
+      spellcheck: true,
       preload: join(__dirname, "preloaders", "mainPreloader.js"),
     },
   });
@@ -109,6 +110,9 @@ async function openMainWindow() {
 
   const userToken = await getUserToken();
 
+  mainWindow.webContents.ipc.on("replace-misspelling", (event, word) => {
+    mainWindow.webContents.replaceMisspelling(word);
+  });
   mainWindow.webContents.ipc.on(
     "restart-activity-status",
     (event, listenToPrograms = []) => {
@@ -125,6 +129,20 @@ async function openMainWindow() {
       mainWindow.hide();
     }
     return false;
+  });
+  mainWindow.webContents.ipc.on("clipboard-actions", (event, action) => {
+    if (action === "copy") {
+      mainWindow.webContents.copy();
+    }
+    if (action === "cut") {
+      mainWindow.webContents.cut();
+    }
+    if (action === "paste") {
+      mainWindow.webContents.paste();
+    }
+  });
+  mainWindow.webContents.on("context-menu", (event, params) => {
+    mainWindow.webContents.send("spellcheck", params.dictionarySuggestions);
   });
 }
 
