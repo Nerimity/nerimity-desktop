@@ -1,10 +1,14 @@
-const { BrowserWindow, dialog } = require("electron")
-const { autoUpdater } = require("electron-updater");
-const path = require("path");
-const { appIcon, } = require("./icon");
-const mainWindow = require("./mainWindow");
+import { BrowserWindow, dialog } from "electron";
+import electronUpdater from "electron-updater";
+import { join } from "path";
+import { appIcon } from "./icon.js";
+import * as mainWindow from "./mainWindow.js";
 const args = process.argv;
-const startupMinimized = args.includes('--hidden')
+const startupMinimized = args.includes("--hidden");
+
+const __dirname = import.meta.dirname;
+
+const { autoUpdater } = electronUpdater;
 
 /**
  * @type { BrowserWindow }
@@ -20,35 +24,32 @@ function openUpdaterWindow() {
     show: !startupMinimized,
     icon: appIcon,
     webPreferences: {
-      preload: path.join(__dirname, "preloaders", 'updaterPreloader.js'),
-    }
-  })
+      preload: join(__dirname, "preloaders", "updaterPreloader.js"),
+    },
+  });
 
   updaterWindow.webContents.ipc.on("ready", () => {
     autoUpdater.checkForUpdates();
 
     autoUpdater.on("update-not-available", () => {
-      autoUpdater.removeAllListeners()
+      autoUpdater.removeAllListeners();
       mainWindow.openMainWindow();
       updaterWindow.close();
-    })
+    });
     autoUpdater.on("error", (err) => {
-      autoUpdater.removeAllListeners()
+      autoUpdater.removeAllListeners();
       mainWindow.openMainWindow();
       dialog.showErrorBox("Error", err.stack);
       updaterWindow.close();
-    })
-    autoUpdater.on('update-available', (progressObj) => {
-      updaterWindow.webContents.send('updating');
-    })
-    autoUpdater.on('update-downloaded', (info) => {
+    });
+    autoUpdater.on("update-available", (progressObj) => {
+      updaterWindow.webContents.send("updating");
+    });
+    autoUpdater.on("update-downloaded", (info) => {
       autoUpdater.quitAndInstall();
-    })
-  })
-  updaterWindow.loadFile(path.join(__dirname, "views", "updater.html"));
+    });
+  });
+  updaterWindow.loadFile(join(__dirname, "views", "updater.html"));
 }
-
-module.exports = {
-  openUpdaterWindow,
-  getUpdaterWindow: () => updaterWindow,
-};
+export const getUpdaterWindow = () => updaterWindow;
+export { openUpdaterWindow };

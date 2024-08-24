@@ -1,11 +1,11 @@
-var portfinder = require("portfinder");
+import { getPortPromise } from "portfinder";
 
-const WebSocket = require("ws");
-const { EventEmitter } = require("events");
+import { WebSocketServer } from "ws";
+import { EventEmitter } from "events";
 
 const PORT_RANGES = [6463, 6472];
 
-class WebSocketRPCServer extends EventEmitter {
+export class WebSocketRPCServer extends EventEmitter {
   constructor(userToken, isPacked) {
     super();
     this.ws = null;
@@ -49,15 +49,13 @@ class WebSocketRPCServer extends EventEmitter {
     this.emit("RPC_UPDATE", firstRPC.data);
   }
   async serve() {
-    const port = await portfinder
-      .getPortPromise({
-        port: PORT_RANGES[0],
-        stopPort: PORT_RANGES[1],
-      })
-      .catch(() => undefined);
+    const port = await getPortPromise({
+      port: PORT_RANGES[0],
+      stopPort: PORT_RANGES[1],
+    }).catch(() => undefined);
     if (!port) return this.portFailed();
 
-    this.ws = new WebSocket.Server({ port, host: "localhost" });
+    this.ws = new WebSocketServer({ port, host: "localhost" });
 
     this.ws.on("listening", () => {
       Log(`Listening on port ${port}`);
@@ -190,5 +188,3 @@ const getAppId = (url) => {
   const appId = params.get("appId");
   return appId;
 };
-
-module.exports = WebSocketRPCServer;

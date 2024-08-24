@@ -1,20 +1,20 @@
-const { app, BrowserWindow, session } = require("electron");
-const { openMainWindow, getMainWindow } = require("./mainWindow");
-const { setTray, getTray } = require("./tray");
-const { isPacked } = require("./utils");
-const { openUpdaterWindow } = require("./updaterWindow");
+import { app, BrowserWindow, session } from "electron";
+import { openMainWindow, getMainWindow } from "./mainWindow.js";
+import { setTray, getTray } from "./tray.js";
+import { isPacked } from "./utils.js";
+import { openUpdaterWindow } from "./updaterWindow.js";
 
-const singleInstanceLock = app.requestSingleInstanceLock()
+const singleInstanceLock = app.requestSingleInstanceLock();
 
-app.on('second-instance', (event, argv, cwd) => {
+app.on("second-instance", (event, argv, cwd) => {
   if (!getMainWindow()) return;
   getMainWindow().show();
   if (getMainWindow().isMinimized()) getMainWindow().restore();
   getMainWindow().focus();
-})
+});
 
 function onReady() {
-  if (!singleInstanceLock){
+  if (!singleInstanceLock) {
     app.quit();
     return;
   }
@@ -25,45 +25,49 @@ function onReady() {
     openMainWindow();
   }
 
-
   const filter = {
-    urls: ['https://drive.usercontent.google.com/*', 'https://drive.google.com/*']
+    urls: [
+      "https://drive.usercontent.google.com/*",
+      "https://drive.google.com/*",
+    ],
   };
 
-  session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-    if (details.requestHeaders) {
-      delete details.requestHeaders["Sec-Fetch-Mode"];
-      delete details.requestHeaders["Sec-Fetch-Site"];
-      delete details.requestHeaders["Sec-Ch-Ua"];
-      delete details.requestHeaders["Sec-Ch-Ua-Mobile"];
-      delete details.requestHeaders["Sec-Ch-Ua-Platform"];
-      delete details.requestHeaders["Sec-Fetch-Dest"];
-      delete details.requestHeaders["Origin"];
-    } 
-    callback({requestHeaders: details.requestHeaders})
-  })
-
-session.defaultSession.webRequest.onHeadersReceived(filter, (details, callback) => {
-  if (details.responseHeaders) {
-    if (!details.url.startsWith("https://drive.usercontent.google.com")) {
-      details.responseHeaders["Access-Control-Allow-Origin"] = ['*'];
-    } else {
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    filter,
+    (details, callback) => {
+      if (details.requestHeaders) {
+        delete details.requestHeaders["Sec-Fetch-Mode"];
+        delete details.requestHeaders["Sec-Fetch-Site"];
+        delete details.requestHeaders["Sec-Ch-Ua"];
+        delete details.requestHeaders["Sec-Ch-Ua-Mobile"];
+        delete details.requestHeaders["Sec-Ch-Ua-Platform"];
+        delete details.requestHeaders["Sec-Fetch-Dest"];
+        delete details.requestHeaders["Origin"];
+      }
+      callback({ requestHeaders: details.requestHeaders });
     }
-    delete details.responseHeaders["Origin"];
-  }
+  );
 
-  callback({ responseHeaders: details.responseHeaders });
-});
+  session.defaultSession.webRequest.onHeadersReceived(
+    filter,
+    (details, callback) => {
+      if (details.responseHeaders) {
+        if (!details.url.startsWith("https://drive.usercontent.google.com")) {
+          details.responseHeaders["Access-Control-Allow-Origin"] = ["*"];
+        } else {
+        }
+        delete details.responseHeaders["Origin"];
+      }
 
-
-
+      callback({ responseHeaders: details.responseHeaders });
+    }
+  );
 }
-app.whenReady().then(onReady)
+app.whenReady().then(onReady);
 
-app.on('window-all-closed', () => {
+app.on("window-all-closed", () => {
   getTray().destroy();
-  if (process.platform !== 'darwin') {
-    app.quit()
+  if (process.platform !== "darwin") {
+    app.quit();
   }
-})
-
+});
