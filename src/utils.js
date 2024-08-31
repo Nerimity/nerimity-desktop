@@ -2,8 +2,13 @@ import { basename } from "path";
 import { execPath, platform } from "process";
 import { BrowserWindow } from "electron";
 
-import { getWindows, ProcessListener } from "@nerimity/active-window-listener";
+import { getWindows, ProcessListener, ProcessListenerLinux, getLinuxWindows } from "@nerimity/active-window-listener";
 import { WebSocketRPCServer } from "./rpc/WebSocket.js";
+import os from 'os';
+
+
+const isLinux = os.type() === "Linux";
+
 /**
  * Checks if the application is packed or not.
  *
@@ -24,6 +29,33 @@ function isPacked() {
  * @return {Promise<Array<{ name: string, filename: string}>>} An array of running programs
  */
 async function getAllRunningPrograms(storedPrograms = []) {
+
+  if (isLinux) {
+    const windows = getLinuxWindows();
+
+    let programs = [];
+    for (let i = 0; i < windows.length; i++) {
+      const window = windows[i];
+
+      const filename = window.owner?.path?.split("/").at(-1);
+      if (!filename) continue;
+
+      if (storedPrograms.find((sp) => sp.filename === filename)) continue;
+
+      let title;
+      if (window.owner.name) {
+        title = window.owner.name;
+      } else if (window.title) {
+        title = window.title;
+      }
+      if (!title) continue;
+      programs.push({ name: title, filename, path: window.owner.path });
+    }
+    return programs.filter((obj, index) => {
+      return programs.findIndex((obj2) => obj.path === obj2.path) === index;
+    });
+  }
+
   const windows = getWindows();
 
   let programs = [];
@@ -76,7 +108,8 @@ async function startActivityListener(listenToPrograms = [], browserWindow) {
     handleWindow(processListener.lastActiveWindow(), browserWindow);
     return;
   }
-  processListener = new ProcessListener(programNameArr);
+  
+  processListener = new (isLinux ? ProcessListenerLinux : ProcessListener)(programNameArr);
   processListener.on("change", (window) => {
     if (rpcServer?.RPCs?.length) return;
     handleWindow(window, browserWindow);
@@ -86,6 +119,16 @@ async function startActivityListener(listenToPrograms = [], browserWindow) {
 function handleWindow(window, browserWindow) {
   if (!window)
     return browserWindow.webContents.send("activity-status-changed", false);
+
+  if (isLinux) {
+    browserWindow.webContents.send("activity-status-changed", {
+      filename: window.owner?.path?.split("/").at(-1),
+      createdAt: window.createdAt,
+    });
+
+    return;
+  }
+
   browserWindow.webContents.send("activity-status-changed", {
     filename: window.path.split("\\")[window.path.split("\\").length - 1],
     createdAt: window.createdAt,
@@ -117,6 +160,7 @@ function handleRPC(data, browserWindow) {
   if (!data) return browserWindow.webContents.send("rpc-changed", false);
   browserWindow.webContents.send("rpc-changed", data);
 }
+
 
 export {
   isPacked,

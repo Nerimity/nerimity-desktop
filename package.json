@@ -46,7 +46,7 @@
     ]
   },
   "dependencies": {
-    "@nerimity/active-window-listener": "^1.2.1",
+    "@nerimity/active-window-listener": "^2.0.3",
     "electron-store": "^10.0.0",
     "electron-updater": "^6.1.8",
     "portfinder": "^1.0.32",
