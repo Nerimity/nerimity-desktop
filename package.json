@@ -42,7 +42,9 @@
     "files": [
       "**/*",
       "build/icon.ico",
-      "build/notification_icon.ico"
+      "build/icon.png",
+      "build/notification_icon.ico",
+      "build/notification_icon.png"
     ]
   },
   "dependencies": {
