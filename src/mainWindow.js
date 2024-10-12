@@ -24,6 +24,14 @@ const __dirname = import.meta.dirname;
  * @type { BrowserWindow }
  */
 let mainWindow = null;
+/**
+ * @type { Electron.DesktopCapturerSource[] | null }
+ */
+let desktopCaptureSources = null;
+/**
+ * @type { Electron.DesktopCapturerSource | null }
+ */
+let desktopCaptureSource = null;
 
 async function openMainWindow() {
   setStartup();
@@ -38,6 +46,14 @@ async function openMainWindow() {
       spellcheck: true,
       preload: join(__dirname, "preloaders", "mainPreloader.js"),
     },
+  });
+
+  const sess = mainWindow.webContents.session;
+
+  sess.setDisplayMediaRequestHandler(async (request, callback) => {
+    callback({ video: desktopCaptureSource, audio: "loopback" });
+    desktopCaptureSource = null;
+    desktopCaptureSources = null;
   });
 
   mainWindow.webContents.ipc.on("relaunch-app", () => {
@@ -82,15 +98,26 @@ async function openMainWindow() {
   mainWindow.webContents.ipc.handle(
     "get-desktop-capture-sources",
     async (event) => {
+      desktopCaptureSource = null;
       const sources = await desktopCapturer.getSources({
         types: ["window", "screen"],
         thumbnailSize: { height: 400, width: 400 },
       });
+      desktopCaptureSources = sources;
       return sources.map((source) => ({
         id: source.id,
         name: source.name,
         thumbnailUrl: source.thumbnail.toDataURL(),
       }));
+    }
+  );
+
+  mainWindow.webContents.ipc.on(
+    "set-desktop-capture-source-id",
+    (event, id) => {
+      desktopCaptureSource = desktopCaptureSources.find(
+        (source) => source.id === id
+      );
     }
   );
 
@@ -141,6 +168,7 @@ async function openMainWindow() {
       mainWindow.webContents.paste();
     }
   });
+
   mainWindow.webContents.on("context-menu", (event, params) => {
     mainWindow.webContents.send("spellcheck", params.dictionarySuggestions);
   });
