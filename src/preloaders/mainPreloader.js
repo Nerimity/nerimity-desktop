@@ -32,6 +32,15 @@ contextBridge.exposeInMainWorld("WindowAPI", {
 
   activityStatusChanged: (callback) =>
     ipcRenderer.on("activity-status-changed", (event, val) => callback(val)),
+  
+  onGlobalKey: (callback) =>
+    ipcRenderer.on("global-key", (event, val) => callback(val)),
+
+  startGlobalKeyListener: () =>
+    ipcRenderer.send("start-global-key-listener"),
+
+  stopGlobalKeyListener: () =>
+    ipcRenderer.send("stop-global-key-listener"),
 
   relaunchApp: () => ipcRenderer.send("relaunch-app"),
 

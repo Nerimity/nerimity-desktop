@@ -15,6 +15,8 @@ import {
   startRPCServer,
   stopRPCServer,
 } from "./utils.js";
+import {GlobalKeyboardListener} from "node-global-key-listener";
+
 const args = process.argv;
 const startupMinimized = args.includes("--hidden");
 
@@ -33,6 +35,12 @@ let desktopCaptureSources = null;
  */
 let desktopCaptureSource = null;
 
+
+/**
+ * @type { GlobalKeyboardListener | null }
+ */
+let globalKeyboard = null;
+let downKeys = new Set();
 async function openMainWindow() {
   setStartup();
   mainWindow = new BrowserWindow({
@@ -77,6 +85,33 @@ async function openMainWindow() {
     setAutostartMinimized(value);
     setStartup();
   });
+
+  const sendKey = (e, down) => {
+    mainWindow.webContents.send("global-key", { down, event: e });
+  };
+
+  mainWindow.webContents.ipc.on("start-global-key-listener", () => {
+    if (globalKeyboard) return;
+    globalKeyboard = new GlobalKeyboardListener();
+    globalKeyboard.addListener(function (e, down) {
+      if (e.state === "DOWN") {
+        if (!downKeys.has(e.vKey)){
+          sendKey(e, down)
+        }
+        downKeys.add(e.vKey);
+      } else {
+        sendKey(e, down)
+        downKeys.delete(e.vKey);
+      }
+
+    });
+  });
+  mainWindow.webContents.ipc.on("stop-global-key-listener", () => {
+    if (!globalKeyboard) return;
+    globalKeyboard.kill();
+    downKeys.clear();
+  });
+
 
   mainWindow.webContents.ipc.on("window-toggle-maximize", () => {
     if (mainWindow.isMaximized()) return mainWindow.unmaximize();

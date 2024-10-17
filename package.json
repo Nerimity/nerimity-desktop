@@ -51,6 +51,7 @@
     "@nerimity/active-window-listener": "^2.0.4",
     "electron-store": "^10.0.0",
     "electron-updater": "^6.1.8",
+    "node-global-key-listener": "^0.3.0",
     "portfinder": "^1.0.32",
     "ws": "^8.16.0"
   }
