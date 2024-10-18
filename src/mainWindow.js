@@ -91,7 +91,11 @@ async function openMainWindow() {
   };
 
   mainWindow.webContents.ipc.on("start-global-key-listener", () => {
-    if (globalKeyboard) return;
+    if (globalKeyboard)  {
+      globalKeyboard.kill();
+      downKeys.clear();
+      globalKeyboard = null;
+    }
     globalKeyboard = new GlobalKeyboardListener();
     globalKeyboard.addListener(function (e, down) {
       if (e.state === "DOWN") {
@@ -110,6 +114,7 @@ async function openMainWindow() {
     if (!globalKeyboard) return;
     globalKeyboard.kill();
     downKeys.clear();
+    globalKeyboard = null;
   });
 
 
