@@ -19,7 +19,7 @@ contextBridge.exposeInMainWorld("WindowAPI", {
     ipcRenderer.invoke("get-desktop-capture-sources"),
 
   setDesktopCaptureSourceId: (id) =>
-    ipcRenderer.send("set-desktop-capture-source-id", id),
+    ipcRenderer.invoke("set-desktop-capture-source-id", id),
 
   getRunningPrograms: (ignoredPrograms) =>
     ipcRenderer.invoke("get-running-programs", ignoredPrograms),
