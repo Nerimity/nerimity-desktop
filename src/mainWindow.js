@@ -61,7 +61,6 @@ async function openMainWindow() {
   sess.setDisplayMediaRequestHandler(async (request, callback) => {
     callback({ video: desktopCaptureSource, audio: "loopback" });
     desktopCaptureSource = null;
-    desktopCaptureSources = null;
   });
 
   mainWindow.webContents.ipc.on("relaunch-app", () => {
