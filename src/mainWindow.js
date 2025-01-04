@@ -59,7 +59,6 @@ async function openMainWindow() {
   const sess = mainWindow.webContents.session;
 
   sess.setDisplayMediaRequestHandler(async (request, callback) => {
-    console.log(request)
     callback({ video: desktopCaptureSource, audio: request.audioRequested ? "loopback" : undefined });
     desktopCaptureSource = null;
     desktopCaptureSources = null;
