@@ -1,6 +1,5 @@
 <html>
   <head>
-
     <style>
       :root {
         --background-color: hsl(216deg 9% 8%);
@@ -15,6 +14,7 @@
         text-align: center;
         font-size: 16px;
         -webkit-app-region: drag;
+        white-space: pre-wrap;
       }
       .container {
         display: flex;
@@ -27,6 +27,19 @@
         height: 150px;
         border-radius: 50%;
       }
+
+      button {
+        padding: 8px;
+        background-color: #ffffff26;
+        color: white;
+        border: solid 1px rgba(255, 255, 255, 0.1);
+        border-radius: 5px;
+        cursor: pointer;
+        app-region: no-drag;
+      }
+      button:hover {
+        background-color: #ffffff3b;
+      }
     </style>
   </head>
   <body>
@@ -36,9 +49,14 @@
     </div>
   </body>
   <script>
-    WindowAPI.ready()
+    WindowAPI.ready();
     WindowAPI.updating(() => {
-      document.getElementById("text").innerHTML = "Updating..."
-    })
+      document.getElementById("text").innerHTML = "Updating...";
+      document.getElementById("skipBtn").style.display = "none";
+    });
+    WindowAPI.error(() => {
+      document.getElementById("text").innerHTML =
+        "An error occurred while updating.\nTrying again in 5...";
+    });
   </script>
 </html>

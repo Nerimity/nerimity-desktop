@@ -14,7 +14,7 @@ const { autoUpdater } = electronUpdater;
  * @type { BrowserWindow }
  */
 let updaterWindow = null;
-
+let retryCount = 0;
 function openUpdaterWindow() {
   updaterWindow = new BrowserWindow({
     width: 300,
@@ -22,6 +22,9 @@ function openUpdaterWindow() {
     center: true,
     frame: false,
     show: !startupMinimized,
+    backgroundColor: "#131416",
+    resizable: false,
+    maximizable: false,
     icon: appIcon,
     webPreferences: {
       preload: join(__dirname, "preloaders", "updaterPreloader.js"),
@@ -36,15 +39,29 @@ function openUpdaterWindow() {
       mainWindow.openMainWindow();
       updaterWindow.close();
     });
+
     autoUpdater.on("error", (err) => {
-      autoUpdater.removeAllListeners();
-      mainWindow.openMainWindow();
-      dialog.showErrorBox("Error", err.stack);
-      updaterWindow.close();
+
+      if (retryCount >= 5) {
+        autoUpdater.removeAllListeners();
+        mainWindow.openMainWindow();
+        dialog.showErrorBox("Error", err.stack);
+        updaterWindow.close();
+        return;
+      }
+      updaterWindow.webContents.send("error");
+      
+      setTimeout(() => {
+        retryCount++;
+        autoUpdater.checkForUpdates();
+      }, 5000);
     });
+
+
     autoUpdater.on("update-available", (progressObj) => {
       updaterWindow.webContents.send("updating");
     });
+
     autoUpdater.on("update-downloaded", (info) => {
       autoUpdater.quitAndInstall();
     });

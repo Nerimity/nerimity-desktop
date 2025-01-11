@@ -50,6 +50,7 @@ async function openMainWindow() {
     frame: false,
     show: !startupMinimized,
     icon: appIcon,
+    backgroundColor: "#131416",
     webPreferences: {
       spellcheck: true,
       preload: join(__dirname, "preloaders", "mainPreloader.js"),
@@ -128,6 +129,21 @@ async function openMainWindow() {
       tray: getTray(),
       type: value ? "NOTIFICATION" : "NORMAL",
     });
+  });
+
+  mainWindow.webContents.on("did-fail-load", function() {
+    console.log("Failed to load, retrying... in 5 seconds");
+
+    setTimeout(async() => {
+      if (!isPacked()) {
+        await mainWindow.loadURL("http://localhost:3000/login");
+        mainWindow.webContents.openDevTools({ mode: "detach" });
+      } else {
+        await mainWindow.loadURL("https://nerimity.com/login");
+      }
+    
+    }, 5000);
+
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
