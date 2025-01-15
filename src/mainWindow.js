@@ -131,19 +131,21 @@ async function openMainWindow() {
     });
   });
 
+  let didLoadSuccess = false;
+  mainWindow.webContents.on("did-navigate", () => {
+    didLoadSuccess = true;
+  })
   mainWindow.webContents.on("did-fail-load", function() {
+    if (didLoadSuccess) return;
     console.log("Failed to load, retrying... in 5 seconds");
 
     setTimeout(async() => {
       if (!isPacked()) {
         await mainWindow.loadURL("http://localhost:3000/login");
-        mainWindow.webContents.openDevTools({ mode: "detach" });
       } else {
         await mainWindow.loadURL("https://nerimity.com/login");
       }
-    
     }, 5000);
-
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -243,6 +245,7 @@ export const getMainWindow = () => mainWindow;
 export { openMainWindow, getUserToken };
 
 function setStartup() {
+  if (!isPacked()) return;
   const autostartEnabled = getAutostart();
   const autostartMinimized = getAutostartMinimized();
   const appPath = app.getPath("exe");
