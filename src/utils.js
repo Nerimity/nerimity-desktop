@@ -68,19 +68,20 @@ async function getAllRunningPrograms(storedPrograms = []) {
 
     if (storedPrograms.find((sp) => sp.filename === filename)) continue;
 
-    let title;
+    let title =  window.getTitle();
     const exif = await window.getExif()?.catch(() => {});
-    if (!exif) title = window.getTitle();
-    else if (exif.FileDescription && exif.FileDescription.trim().length) {
+    if (exif.FileDescription && exif.FileDescription.trim().length) {
       title = exif.FileDescription;
     } else if (exif.ProductName && exif.ProductName.trim().length) {
       title = exif.ProductName;
     }
 
+    console.log(window.getTitle(), title)
     if (!title) continue;
 
     programs.push({ name: title, filename });
   }
+  
 
   return programs;
 }
