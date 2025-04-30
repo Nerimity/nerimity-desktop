@@ -16,3 +16,11 @@ export function getAutostart() {
 export function getAutostartMinimized() {
   return store.get("autostartMinimized", true);
 }
+
+export function getHardwareAccelerationDisabled() {
+  return store.get("hardwareAccelerationDisabled", false);
+}
+
+export function setHardwareAccelerationDisabled(value) {
+  return store.set("hardwareAccelerationDisabled", value);
+}

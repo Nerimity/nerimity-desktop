@@ -5,6 +5,8 @@ import {
   setAutostart,
   getAutostartMinimized,
   setAutostartMinimized,
+  getHardwareAccelerationDisabled,
+  setHardwareAccelerationDisabled,
 } from "./store.js";
 import { setAppIcon, appIcon } from "./icon.js";
 import { getTray } from "./tray.js";
@@ -19,6 +21,10 @@ import {GlobalKeyboardListener} from "node-global-key-listener";
 
 const args = process.argv;
 const startupMinimized = args.includes("--hidden");
+
+if (getHardwareAccelerationDisabled()) {
+  app.disableHardwareAcceleration();
+}
 
 const __dirname = import.meta.dirname;
 
@@ -52,6 +58,7 @@ async function openMainWindow() {
     icon: appIcon,
     backgroundColor: "#131416",
     webPreferences: {
+      webSecurity: isPacked(),
       spellcheck: true,
       preload: join(__dirname, "preloaders", "mainPreloader.js"),
     },
@@ -77,6 +84,12 @@ async function openMainWindow() {
   mainWindow.webContents.ipc.on("set-autostart", (event, value) => {
     setAutostart(value);
     setStartup();
+  });
+
+
+  mainWindow.webContents.ipc.handle("get-hw-acceleration-disabled", (event) => getHardwareAccelerationDisabled());
+  mainWindow.webContents.ipc.on("set-hw-acceleration-disabled", (event, value) => {
+    setHardwareAccelerationDisabled(value);
   });
 
   mainWindow.webContents.ipc.handle("get-autostart-minimized", (event) =>
