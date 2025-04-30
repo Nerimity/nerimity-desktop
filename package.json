@@ -14,7 +14,7 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "keywords": [],
-  "author": "SupertigerDev",
+  "author": "SupertigerDev <supertigerrrrr@gmail.com>",
   "license": "ISC",
   "devDependencies": {
     "electron": "^33.3.1",
