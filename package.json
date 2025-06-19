@@ -17,8 +17,8 @@
   "author": "SupertigerDev <supertigerrrrr@gmail.com>",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^33.3.1",
-    "electron-builder": "^25.1.8",
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12",
     "nodemon": "^3.1.0"
   },
   "build": {
