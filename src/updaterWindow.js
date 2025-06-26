@@ -34,6 +34,10 @@ function openUpdaterWindow() {
   updaterWindow.webContents.ipc.on("ready", () => {
     autoUpdater.checkForUpdates();
 
+    autoUpdater.on("download-progress", (progressObj) => {
+      updaterWindow.webContents.send("download-progress", progressObj);
+    })
+
     autoUpdater.on("update-not-available", () => {
       autoUpdater.removeAllListeners();
       mainWindow.openMainWindow();

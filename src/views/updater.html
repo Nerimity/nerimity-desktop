@@ -3,6 +3,7 @@
     <style>
       :root {
         --background-color: hsl(216deg 9% 8%);
+        --primary-color: #4c93ff;
       }
       body {
         display: grid;
@@ -40,12 +41,50 @@
       button:hover {
         background-color: #ffffff3b;
       }
+
+      #progress-bar-container {
+        display: none;
+        flex-direction: column;
+        gap: 4px;
+
+      }
+      .progress-bar-details {
+        display: flex;
+        justify-content: space-between;
+      }
+      .progress-bar-details #speed {
+        opacity: 0.8;
+      }
+
+      .progress-bar {
+        display: flex;
+        width: 200px;
+        overflow: hidden;
+        height: 10px;
+        background-color: #ffffff26;
+        border-radius: 999px;
+      }
+      #progress-bar-fill {
+        width: 40%;
+        height: 100%;
+        background-color: var(--primary-color);
+      }
     </style>
   </head>
   <body>
     <div class="container">
       <img src="./logo.png" />
       <div id="text">Checking For Updates...</div>
+
+      <div id="progress-bar-container">
+          <div class="progress-bar-details">
+            <!-- <div id="speed">100 MB/s</div> -->
+            <div id="download-percent">40%</div>
+          </div>
+          <div class="progress-bar">
+            <div id="progress-bar-fill"></div>
+          </div>
+      </div>
     </div>
   </body>
   <script>
@@ -58,5 +97,27 @@
       document.getElementById("text").innerHTML =
         "An error occurred while updating.\nTrying again in 5...";
     });
+
+
+
+
+    const dummy = {
+      total: 100123299,
+      delta: 22291188,
+      transferred: 86909666,
+      percent: 86.8026392138757,
+      bytesPerSecond: 21684048
+    }
+
+
+      const progressBar = document.getElementById("progress-bar-container")
+      const progressBarFill = document.getElementById("progress-bar-fill")
+      const downloadPercent = document.getElementById("download-percent")
+
+    WindowAPI.downloadProgress((e) => {
+      progressBar.style.display = "flex";
+      progressBarFill.style.width = `${e.percent}%`
+      downloadPercent.innerHTML = `${Math.floor(e.percent)}%`
+    })
   </script>
 </html>
