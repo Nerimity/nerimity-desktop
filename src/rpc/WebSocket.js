@@ -139,11 +139,11 @@ export class WebSocketRPCServer extends EventEmitter {
   destroy() {
     this.checkIfListeningInterval && clearInterval(this.checkIfListeningInterval);
     if (this.ws) {
-      this.ws.close();
+      this.ws?.close();
       this.RPCs = [];
-      this.ws = null;
       this.emitEvent();
-      this.ws.removeAllListeners();
+      this.ws?.removeAllListeners();
+      this.ws = null;
       this.removeAllListeners();
     }
   }
