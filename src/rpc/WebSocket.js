@@ -1,6 +1,6 @@
 import { getPortPromise } from "portfinder";
 
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { EventEmitter } from "events";
 
 const PORT_RANGES = [6463, 6472];
@@ -12,6 +12,7 @@ export class WebSocketRPCServer extends EventEmitter {
     this.RPCs = [];
     this.userToken = userToken;
     this.isPacked = isPacked;
+    this.checkIfListeningInterval = null;
   }
   updateRPC(id, data) {
     if (!data) return this.removeRPC(id);
@@ -72,7 +73,7 @@ export class WebSocketRPCServer extends EventEmitter {
         client.close();
         return;
       }
-      const validAppId = await checkAppId(appId, this.userToken, this.isPacked);
+      const validAppId = appId === "checker" ? true : await checkAppId(appId, this.userToken, this.isPacked);
       if (!validAppId) {
         Log("Invalid App Id");
         client.close();
@@ -92,6 +93,11 @@ export class WebSocketRPCServer extends EventEmitter {
           name: "HELLO_NERIMITY_RPC",
         })
       );
+
+      if (appId === "checker") {
+        client.close();
+        return;
+      }
 
       client.onmessage = (event) => {
         const payload = safeParseJson(event.data);
@@ -116,15 +122,29 @@ export class WebSocketRPCServer extends EventEmitter {
     this.ws.on("error", (err) => {
       console.error(err);
     });
+    const checkIntervalMs = 30 * 1000; // 30 seconds
+    this.checkIfListeningInterval = setInterval(async () => {
+      const success = await checkIfListening(port);
+      if (!success) {
+        clearInterval(this.checkIfListeningInterval);
+        this.destroy();
+        this.serve();
+      }
+    }, checkIntervalMs);
   }
   portFailed() {
     this.ws?.removeAllListeners?.();
     Log("All ports are in use, giving up :(");
   }
   destroy() {
+    this.checkIfListeningInterval && clearInterval(this.checkIfListeningInterval);
     if (this.ws) {
-      this.ws.removeAllListeners();
       this.ws.close();
+      this.RPCs = [];
+      this.ws = null;
+      this.emitEvent();
+      this.ws.removeAllListeners();
+      this.removeAllListeners();
     }
   }
 }
@@ -188,3 +208,26 @@ const getAppId = (url) => {
   const appId = params.get("appId");
   return appId;
 };
+
+
+const checkIfListening = (port) => {
+  return new Promise(resolve => {
+    Log("Checking if listening...");
+    const client = new WebSocket(`ws://localhost:${port}/?appId=checker`);
+    client.onclose = () => {
+      Log("Failed.");
+      client.close();
+      resolve(false);
+    }
+    client.onmessage = (event) => {
+      const payload = safeParseJson(event.data);
+      if (!payload) return client.close();
+      if (payload.name === "HELLO_NERIMITY_RPC") {
+        Log("Success!");
+        resolve(true);
+        client.removeAllListeners();
+        client.close();
+      }
+    }
+  })
+}

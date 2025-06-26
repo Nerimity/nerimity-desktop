@@ -142,9 +142,9 @@ function handleWindow(window, browserWindow) {
  */
 async function startRPCServer(browserWindow, userToken) {
   if (rpcServer) {
-    handleRPC(rpcServer.RPCs[0]?.data, browserWindow);
-    return;
+    rpcServer.destroy();
   }
+
 
   rpcServer = new WebSocketRPCServer(userToken, isPacked());
   rpcServer.serve();

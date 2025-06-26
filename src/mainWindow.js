@@ -144,22 +144,7 @@ async function openMainWindow() {
     });
   });
 
-  let didLoadSuccess = false;
-  mainWindow.webContents.on("did-navigate", () => {
-    didLoadSuccess = true;
-  })
-  mainWindow.webContents.on("did-fail-load", function() {
-    if (didLoadSuccess) return;
-    console.log("Failed to load, retrying... in 5 seconds");
 
-    setTimeout(async() => {
-      if (!isPacked()) {
-        await mainWindow.loadURL("http://localhost:3000/login");
-      } else {
-        await mainWindow.loadURL("https://nerimity.com/login");
-      }
-    }, 5000);
-  });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
@@ -200,14 +185,8 @@ async function openMainWindow() {
     }
   );
 
-  if (!isPacked()) {
-    await mainWindow.loadURL("http://localhost:3000/login");
-    mainWindow.webContents.openDevTools({ mode: "detach" });
-  } else {
-    await mainWindow.loadURL("https://nerimity.com/login");
-  }
 
-  const userToken = await getUserToken();
+
 
   mainWindow.webContents.ipc.on("replace-misspelling", (event, word) => {
     mainWindow.webContents.replaceMisspelling(word);
@@ -218,7 +197,9 @@ async function openMainWindow() {
       startActivityListener(listenToPrograms, mainWindow);
     }
   );
-  mainWindow.webContents.ipc.on("restart-rpc-server", () => {
+  mainWindow.webContents.ipc.on("restart-rpc-server", async () => {
+  const userToken = await getUserToken();
+
     startRPCServer(mainWindow, userToken);
   });
 
@@ -244,6 +225,30 @@ async function openMainWindow() {
   mainWindow.webContents.on("context-menu", (event, params) => {
     mainWindow.webContents.send("spellcheck", params.dictionarySuggestions);
   });
+
+  let didLoadSuccess = false;
+  mainWindow.webContents.on("did-navigate", () => {
+    didLoadSuccess = true;
+  })
+  mainWindow.webContents.on("did-fail-load", function() {
+    if (didLoadSuccess) return;
+    console.log("Failed to load, retrying... in 5 seconds");
+
+    setTimeout(async() => {
+      if (isPacked()) {
+        await mainWindow.loadURL("https://nerimity.com/login");
+      } else {
+        await mainWindow.loadURL("http://localhost:3000/login");
+      }
+    }, 5000);
+  });
+  if (isPacked()) {
+    await mainWindow.loadURL("https://nerimity.com/login");
+  } else {
+    await mainWindow.loadURL("http://localhost:3000/login");
+    mainWindow.webContents.openDevTools({ mode: "detach" });
+  }
+
 }
 
 const getUserToken = async () => {
