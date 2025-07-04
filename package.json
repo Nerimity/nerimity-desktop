@@ -1,6 +1,6 @@
 {
   "name": "nerimity-desktop",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "type": "module",
