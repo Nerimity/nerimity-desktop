@@ -17,7 +17,6 @@ import {
   startRPCServer,
   stopRPCServer,
 } from "./utils.js";
-import {GlobalKeyboardListener} from "node-global-key-listener";
 
 const args = process.argv;
 const startupMinimized = args.includes("--hidden");
@@ -42,9 +41,9 @@ let desktopCaptureSources = null;
 let desktopCaptureSource = null;
 
 
-/**
- * @type { GlobalKeyboardListener | null }
- */
+// /**
+//  * @type { GlobalKeyboardListener | null }
+//  */
 let globalKeyboard = null;
 let downKeys = new Set();
 async function openMainWindow() {
@@ -105,30 +104,30 @@ async function openMainWindow() {
   };
 
   mainWindow.webContents.ipc.on("start-global-key-listener", () => {
-    if (globalKeyboard)  {
-      globalKeyboard.kill();
-      downKeys.clear();
-      globalKeyboard = null;
-    }
-    globalKeyboard = new GlobalKeyboardListener();
-    globalKeyboard.addListener(function (e, down) {
-      if (e.state === "DOWN") {
-        if (!downKeys.has(e.vKey)){
-          sendKey(e, down)
-        }
-        downKeys.add(e.vKey);
-      } else {
-        sendKey(e, down)
-        downKeys.delete(e.vKey);
-      }
+    // if (globalKeyboard)  {
+    //   globalKeyboard.kill();
+    //   downKeys.clear();
+    //   globalKeyboard = null;
+    // }
+    // globalKeyboard = new GlobalKeyboardListener();
+    // globalKeyboard.addListener(function (e, down) {
+    //   if (e.state === "DOWN") {
+    //     if (!downKeys.has(e.vKey)){
+    //       sendKey(e, down)
+    //     }
+    //     downKeys.add(e.vKey);
+    //   } else {
+    //     sendKey(e, down)
+    //     downKeys.delete(e.vKey);
+    //   }
 
-    });
+    // });
   });
   mainWindow.webContents.ipc.on("stop-global-key-listener", () => {
-    if (!globalKeyboard) return;
-    globalKeyboard.kill();
-    downKeys.clear();
-    globalKeyboard = null;
+    // if (!globalKeyboard) return;
+    // globalKeyboard.kill();
+    // downKeys.clear();
+    // globalKeyboard = null;
   });
 
 
