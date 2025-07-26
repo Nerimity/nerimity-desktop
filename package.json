@@ -17,7 +17,7 @@
   "author": "SupertigerDev <supertigerrrrr@gmail.com>",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^37.2.1",
+    "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
     "nodemon": "^3.1.10"
   },
@@ -49,7 +49,7 @@
     ]
   },
   "dependencies": {
-    "@nerimity/active-window-listener": "^2.0.5",
+    "@nerimity/active-window-listener": "^2.0.6",
     "electron-store": "^10.1.0",
     "electron-updater": "^6.6.2",
     "node-abi": "^4.12.0",
