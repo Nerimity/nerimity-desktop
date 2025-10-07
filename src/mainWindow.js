@@ -1,4 +1,4 @@
-import { BrowserWindow, app, shell, desktopCapturer, Menu } from "electron";
+import { BrowserWindow, app, shell, desktopCapturer } from "electron";
 import { join, basename } from "path";
 import {
   getAutostart,
@@ -49,12 +49,12 @@ let globalKeyboard = null;
 let downKeys = new Set();
 async function openMainWindow() {
   setStartup();
-  Menu.setApplicationMenu(false);
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     center: true,
     frame: getCustomTitlebarDisaled(),
+    autoHideMenuBar: true,
     show: !startupMinimized,
     icon: appIcon,
     backgroundColor: "#131416",
