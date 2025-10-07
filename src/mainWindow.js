@@ -7,8 +7,8 @@ import {
   setAutostartMinimized,
   getHardwareAccelerationDisabled,
   setHardwareAccelerationDisabled,
-  getCustomTitlebarDisaled,
-  setCustomTitlebarDisaled,
+  getCustomTitlebarDisabled,
+  setCustomTitlebarDisabled,
 } from "./store.js";
 import { setAppIcon, appIcon } from "./icon.js";
 import { getTray } from "./tray.js";
@@ -53,7 +53,7 @@ async function openMainWindow() {
     width: 1200,
     height: 800,
     center: true,
-    frame: getCustomTitlebarDisaled(),
+    frame: getCustomTitlebarDisabled(),
     autoHideMenuBar: true,
     show: !startupMinimized,
     icon: appIcon,
@@ -100,12 +100,12 @@ async function openMainWindow() {
     }
   );
   mainWindow.webContents.ipc.handle("get-custom-titlebar-disabled", (event) =>
-    getCustomTitlebarDisaled()
+    getCustomTitlebarDisabled()
   );
   mainWindow.webContents.ipc.on(
     "set-custom-titlebar-disabled",
     (event, value) => {
-      setCustomTitlebarDisaled(value);
+      setCustomTitlebarDisabled(value);
     }
   );
 

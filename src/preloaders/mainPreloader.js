@@ -14,9 +14,9 @@ contextBridge.exposeInMainWorld("WindowAPI", {
   setHardwareAccelerationDisabled: (value) =>
     ipcRenderer.send("set-hw-acceleration-disabled", value),
 
-  getCustomTitlebarDisaled: () =>
+  getCustomTitlebarDisabled: () =>
     ipcRenderer.invoke("get-custom-titlebar-disabled"),
-  setCustomTitlebarDisaled: (value) =>
+  setCustomTitlebarDisabled: (value) =>
     ipcRenderer.send("set-custom-titlebar-disabled", value),
 
   getAutostartMinimized: () => ipcRenderer.invoke("get-autostart-minimized"),
