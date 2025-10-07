@@ -1,4 +1,4 @@
-import { BrowserWindow, app, shell, desktopCapturer } from "electron";
+import { BrowserWindow, app, shell, desktopCapturer, Menu } from "electron";
 import { join, basename } from "path";
 import {
   getAutostart,
@@ -7,6 +7,8 @@ import {
   setAutostartMinimized,
   getHardwareAccelerationDisabled,
   setHardwareAccelerationDisabled,
+  getCustomTitlebarDisaled,
+  setCustomTitlebarDisaled,
 } from "./store.js";
 import { setAppIcon, appIcon } from "./icon.js";
 import { getTray } from "./tray.js";
@@ -40,7 +42,6 @@ let desktopCaptureSources = null;
  */
 let desktopCaptureSource = null;
 
-
 // /**
 //  * @type { GlobalKeyboardListener | null }
 //  */
@@ -48,11 +49,12 @@ let globalKeyboard = null;
 let downKeys = new Set();
 async function openMainWindow() {
   setStartup();
+  Menu.setApplicationMenu(false);
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     center: true,
-    frame: false,
+    frame: getCustomTitlebarDisaled(),
     show: !startupMinimized,
     icon: appIcon,
     backgroundColor: "#131416",
@@ -66,7 +68,10 @@ async function openMainWindow() {
   const sess = mainWindow.webContents.session;
 
   sess.setDisplayMediaRequestHandler(async (request, callback) => {
-    callback({ video: desktopCaptureSource, audio: request.audioRequested ? "loopback" : undefined });
+    callback({
+      video: desktopCaptureSource,
+      audio: request.audioRequested ? "loopback" : undefined,
+    });
     desktopCaptureSource = null;
     desktopCaptureSources = null;
   });
@@ -85,11 +90,24 @@ async function openMainWindow() {
     setStartup();
   });
 
-
-  mainWindow.webContents.ipc.handle("get-hw-acceleration-disabled", (event) => getHardwareAccelerationDisabled());
-  mainWindow.webContents.ipc.on("set-hw-acceleration-disabled", (event, value) => {
-    setHardwareAccelerationDisabled(value);
-  });
+  mainWindow.webContents.ipc.handle("get-hw-acceleration-disabled", (event) =>
+    getHardwareAccelerationDisabled()
+  );
+  mainWindow.webContents.ipc.on(
+    "set-hw-acceleration-disabled",
+    (event, value) => {
+      setHardwareAccelerationDisabled(value);
+    }
+  );
+  mainWindow.webContents.ipc.handle("get-custom-titlebar-disabled", (event) =>
+    getCustomTitlebarDisaled()
+  );
+  mainWindow.webContents.ipc.on(
+    "set-custom-titlebar-disabled",
+    (event, value) => {
+      setCustomTitlebarDisaled(value);
+    }
+  );
 
   mainWindow.webContents.ipc.handle("get-autostart-minimized", (event) =>
     getAutostartMinimized()
@@ -120,7 +138,6 @@ async function openMainWindow() {
     //     sendKey(e, down)
     //     downKeys.delete(e.vKey);
     //   }
-
     // });
   });
   mainWindow.webContents.ipc.on("stop-global-key-listener", () => {
@@ -129,7 +146,6 @@ async function openMainWindow() {
     // downKeys.clear();
     // globalKeyboard = null;
   });
-
 
   mainWindow.webContents.ipc.on("window-toggle-maximize", () => {
     if (mainWindow.isMaximized()) return mainWindow.unmaximize();
@@ -142,8 +158,6 @@ async function openMainWindow() {
       type: value ? "NOTIFICATION" : "NORMAL",
     });
   });
-
-
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);
@@ -184,9 +198,6 @@ async function openMainWindow() {
     }
   );
 
-
-
-
   mainWindow.webContents.ipc.on("replace-misspelling", (event, word) => {
     mainWindow.webContents.replaceMisspelling(word);
   });
@@ -197,7 +208,7 @@ async function openMainWindow() {
     }
   );
   mainWindow.webContents.ipc.on("restart-rpc-server", async () => {
-  const userToken = await getUserToken();
+    const userToken = await getUserToken();
 
     startRPCServer(mainWindow, userToken);
   });
@@ -228,12 +239,12 @@ async function openMainWindow() {
   let didLoadSuccess = false;
   mainWindow.webContents.on("did-navigate", () => {
     didLoadSuccess = true;
-  })
-  mainWindow.webContents.on("did-fail-load", function() {
+  });
+  mainWindow.webContents.on("did-fail-load", function () {
     if (didLoadSuccess) return;
     console.log("Failed to load, retrying... in 5 seconds");
 
-    setTimeout(async() => {
+    setTimeout(async () => {
       if (isPacked()) {
         await mainWindow.loadURL("https://nerimity.com/login");
       } else {
@@ -247,7 +258,6 @@ async function openMainWindow() {
     await mainWindow.loadURL("http://localhost:3000/login");
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
-
 }
 
 const getUserToken = async () => {

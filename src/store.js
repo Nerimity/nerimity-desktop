@@ -24,3 +24,11 @@ export function getHardwareAccelerationDisabled() {
 export function setHardwareAccelerationDisabled(value) {
   return store.set("hardwareAccelerationDisabled", value);
 }
+
+export function getCustomTitlebarDisaled() {
+  return store.get("customTitlebarDisaled", false);
+}
+
+export function setCustomTitlebarDisaled(value) {
+  return store.set("customTitlebarDisaled", value);
+}

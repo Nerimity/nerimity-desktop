@@ -9,8 +9,15 @@ contextBridge.exposeInMainWorld("WindowAPI", {
   getAutostart: () => ipcRenderer.invoke("get-autostart"),
   setAutostart: (value) => ipcRenderer.send("set-autostart", value),
 
-  getHardwareAccelerationDisabled: () => ipcRenderer.invoke("get-hw-acceleration-disabled"),
-  setHardwareAccelerationDisabled: (value) => ipcRenderer.send("set-hw-acceleration-disabled", value),
+  getHardwareAccelerationDisabled: () =>
+    ipcRenderer.invoke("get-hw-acceleration-disabled"),
+  setHardwareAccelerationDisabled: (value) =>
+    ipcRenderer.send("set-hw-acceleration-disabled", value),
+
+  getCustomTitlebarDisaled: () =>
+    ipcRenderer.invoke("get-custom-titlebar-disabled"),
+  setCustomTitlebarDisaled: (value) =>
+    ipcRenderer.send("set-custom-titlebar-disabled", value),
 
   getAutostartMinimized: () => ipcRenderer.invoke("get-autostart-minimized"),
   setAutostartMinimized: (value) =>
@@ -35,15 +42,13 @@ contextBridge.exposeInMainWorld("WindowAPI", {
 
   activityStatusChanged: (callback) =>
     ipcRenderer.on("activity-status-changed", (event, val) => callback(val)),
-  
+
   onGlobalKey: (callback) =>
     ipcRenderer.on("global-key", (event, val) => callback(val)),
 
-  startGlobalKeyListener: () =>
-    ipcRenderer.send("start-global-key-listener"),
+  startGlobalKeyListener: () => ipcRenderer.send("start-global-key-listener"),
 
-  stopGlobalKeyListener: () =>
-    ipcRenderer.send("stop-global-key-listener"),
+  stopGlobalKeyListener: () => ipcRenderer.send("stop-global-key-listener"),
 
   relaunchApp: () => ipcRenderer.send("relaunch-app"),
 
