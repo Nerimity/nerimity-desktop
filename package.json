@@ -4,7 +4,7 @@
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "type": "module",
-  "repository": "https://github.com/Nerimity/nerimity-desktop",
+  "repository": "https://github.com/TrueLuna/nerimity-desktop",
   "scripts": {
     "start": "electron .",
     "dev": "nodemon --watch * --exec electron .",
