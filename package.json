@@ -30,7 +30,12 @@
       "icon": "build/icon.ico"
     },
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "build/icon-512.png",
       "category": "public.app-category.social-networking"
     },
