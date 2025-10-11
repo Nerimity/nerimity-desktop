@@ -1,5 +1,38 @@
 # Nerimity Desktop
 
+### Building
+
+#### Prerequisites
+- Node.js (v16 or higher)
+- npm (comes with Node.js)
+
+#### Installation
+```bash
+npm install
+```
+
+#### Building Installers
+To build the installer for your current platform:
+```bash
+npm run app:dist
+```
+
+The built installer will be created in the `dist/` folder.
+
+**Platform-specific builds:**
+- **Windows**: Creates an NSIS installer (`.exe`)
+- **macOS**: Creates a DMG installer (`.dmg`) - requires macOS to build
+- **Linux**: Creates both `.deb` and `.AppImage` packages
+
+To build for a specific platform:
+```bash
+npm run app:dist -- --win    # Windows
+npm run app:dist -- --mac    # macOS
+npm run app:dist -- --linux  # Linux
+```
+
+
+
 ### Releasing
 
 When you want to create a new release, follow these steps:

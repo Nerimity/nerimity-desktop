@@ -9,6 +9,7 @@
     "start": "electron .",
     "dev": "nodemon --watch * --exec electron .",
     "publish-win": "electron-builder --win -p always",
+    "publish-mac": "electron-builder --mac -p always",
     "app:dir": "electron-builder --dir",
     "app:dist": "electron-builder",
     "postinstall": "electron-builder install-app-deps"
@@ -28,6 +29,11 @@
       "target": "nsis",
       "icon": "build/icon.ico"
     },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon-512.png",
+      "category": "public.app-category.social-networking"
+    },
     "linux": {
       "target": [
         "deb",
@@ -44,6 +50,7 @@
       "**/*",
       "build/icon.ico",
       "build/icon.png",
+      "build/icon-512.png",
       "build/notification_icon.ico",
       "build/notification_icon.png"
     ]
