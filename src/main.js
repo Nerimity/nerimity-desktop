@@ -18,7 +18,10 @@ function onReady() {
     app.quit();
     return;
   }
-  setTray();
+  // Skip tray on macOS (uses dock instead)
+  if (process.platform !== "darwin") {
+    setTray();
+  }
   if (isPacked()) {
     openUpdaterWindow();
   } else {
@@ -66,8 +69,20 @@ function onReady() {
 app.whenReady().then(onReady);
 
 app.on("window-all-closed", () => {
-  getTray().destroy();
   if (process.platform !== "darwin") {
+    getTray()?.destroy();
     app.quit();
+  }
+});
+
+// Handle Cmd+Q and proper quit on macOS
+app.on("before-quit", () => {
+  app.isQuitting = true;
+});
+
+// Reopen window when clicking Dock icon on macOS
+app.on("activate", () => {
+  if (process.platform === "darwin" && getMainWindow()) {
+    getMainWindow().show();
   }
 });
