@@ -74,3 +74,15 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
+
+// Handle Cmd+Q and proper quit on macOS
+app.on("before-quit", () => {
+  app.isQuitting = true;
+});
+
+// Reopen window when clicking Dock icon on macOS
+app.on("activate", () => {
+  if (process.platform === "darwin" && getMainWindow()) {
+    getMainWindow().show();
+  }
+});
