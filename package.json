@@ -1,6 +1,6 @@
 {
   "name": "nerimity-desktop",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "type": "module",
@@ -65,7 +65,7 @@
   },
   "dependencies": {
     "@nerimity/active-window-listener": "^2.0.6",
-    "application-loopback": "^1.2.6",
+    "application-loopback": "^1.2.7",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.6.2",
     "node-abi": "^3.78.0",
