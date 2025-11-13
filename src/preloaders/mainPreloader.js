@@ -60,4 +60,10 @@ contextBridge.exposeInMainWorld("WindowAPI", {
   clipboardPaste: () => ipcRenderer.send("clipboard-actions", "paste"),
   clipboardCut: () => ipcRenderer.send("clipboard-actions", "cut"),
   clipboardCopy: () => ipcRenderer.send("clipboard-actions", "copy"),
+
+  appLoopbackStart: (captureSourceId) =>
+    ipcRenderer.send("app-loopback-start", captureSourceId),
+  appLoopbackReset: () => ipcRenderer.send("app-loopback-reset"),
+  appLoopbackData: (callback) =>
+    ipcRenderer.on("app-loopback-data", (event, val) => callback(val)),
 });

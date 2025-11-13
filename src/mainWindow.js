@@ -18,6 +18,7 @@ import {
   startActivityListener,
   startRPCServer,
   stopRPCServer,
+  createAppLoopback,
 } from "./utils.js";
 
 const args = process.argv;
@@ -67,6 +68,8 @@ async function openMainWindow() {
 
   const sess = mainWindow.webContents.session;
 
+  const appLoopback = createAppLoopback();
+
   sess.setDisplayMediaRequestHandler(async (request, callback) => {
     callback({
       video: desktopCaptureSource,
@@ -81,6 +84,13 @@ async function openMainWindow() {
     app.relaunch();
     app.exit();
   });
+  mainWindow.webContents.ipc.on("app-loopback-start", (e, captureSourceId) =>
+    appLoopback.startCapture(captureSourceId)
+  );
+  mainWindow.webContents.ipc.on("app-loopback-reset", () =>
+    appLoopback.reset()
+  );
+
   mainWindow.webContents.ipc.on("window-minimize", () => mainWindow.minimize());
   mainWindow.webContents.ipc.on("window-close", () => mainWindow.hide());
 

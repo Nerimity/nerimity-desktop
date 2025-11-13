@@ -1,11 +1,22 @@
-import { basename } from "path";
+import { basename, resolve } from "path";
 import { execPath, platform } from "process";
 import { BrowserWindow } from "electron";
 
-import { getWindows, ProcessListener, ProcessListenerLinux, getLinuxWindows } from "@nerimity/active-window-listener";
+import {
+  getWindows,
+  ProcessListener,
+  ProcessListenerLinux,
+  getLinuxWindows,
+} from "@nerimity/active-window-listener";
 import { WebSocketRPCServer } from "./rpc/WebSocket.js";
-import os from 'os';
-
+import os from "os";
+import {
+  getActiveWindowProcessIds,
+  startAudioCapture,
+  setExecutablesRoot,
+  stopAudioCapture,
+} from "application-loopback";
+import { getMainWindow } from "./mainWindow.js";
 
 const isLinux = os.type() === "Linux";
 
@@ -29,7 +40,6 @@ function isPacked() {
  * @return {Promise<Array<{ name: string, filename: string}>>} An array of running programs
  */
 async function getAllRunningPrograms(storedPrograms = []) {
-
   if (isLinux) {
     const windows = getLinuxWindows();
 
@@ -68,7 +78,7 @@ async function getAllRunningPrograms(storedPrograms = []) {
 
     if (storedPrograms.find((sp) => sp.filename === filename)) continue;
 
-    let title =  window.getTitle();
+    let title = window.getTitle();
     const exif = await window.getExif()?.catch(() => {});
     if (exif.FileDescription && exif.FileDescription.trim().length) {
       title = exif.FileDescription;
@@ -76,12 +86,11 @@ async function getAllRunningPrograms(storedPrograms = []) {
       title = exif.ProductName;
     }
 
-    console.log(window.getTitle(), title)
+    console.log(window.getTitle(), title);
     if (!title) continue;
 
     programs.push({ name: title, filename });
   }
-  
 
   return programs;
 }
@@ -109,8 +118,10 @@ async function startActivityListener(listenToPrograms = [], browserWindow) {
     handleWindow(processListener.lastActiveWindow(), browserWindow);
     return;
   }
-  
-  processListener = new (isLinux ? ProcessListenerLinux : ProcessListener)(programNameArr);
+
+  processListener = new (isLinux ? ProcessListenerLinux : ProcessListener)(
+    programNameArr
+  );
   processListener.on("change", (window) => {
     if (rpcServer?.RPCs?.length) return;
     handleWindow(window, browserWindow);
@@ -145,7 +156,6 @@ async function startRPCServer(browserWindow, userToken) {
     rpcServer.destroy();
   }
 
-
   rpcServer = new WebSocketRPCServer(userToken, isPacked());
   rpcServer.serve();
   rpcServer.on("RPC_UPDATE", (data) => {
@@ -162,6 +172,66 @@ function handleRPC(data, browserWindow) {
   browserWindow.webContents.send("rpc-changed", data);
 }
 
+const createAppLoopback = () => {
+  if (isPacked()) {
+    setExecutablesRoot(
+      resolve(
+        import.meta.dirname,
+        "..",
+        "..",
+        "app.asar.unpacked",
+        "node_modules",
+        "application-loopback",
+        "bin"
+      )
+    );
+  }
+
+  /**
+   *
+   * @param {number} hwnd
+   */
+  const hwndToProcessId = async (hwnd) => {
+    const windows = await getActiveWindowProcessIds();
+    return windows.find((w) => w.hwnd === hwnd)?.processId;
+  };
+
+  /**
+   * @type {number | null}
+   */
+  let processId = null;
+
+  /**
+   *
+   * @param {string} chromeMediaSourceId
+   */
+  const startCapture = async (chromeMediaSourceId) => {
+    reset();
+    const hwnd = chromeMediaSourceId.split(":")[1];
+    console.log("AppLoopback: hwnd", hwnd);
+    processId = await hwndToProcessId(hwnd);
+    if (!processId) {
+      console.log("AppLoopback: processId not found");
+    }
+    console.log("AppLoopback: processId", processId);
+    startAudioCapture(processId, {
+      onData: (d) => {
+        getMainWindow()?.webContents.send("app-loopback-data", d);
+      },
+    });
+  };
+
+  const reset = () => {
+    if (!processId) return;
+    stopAudioCapture(processId);
+    processId = null;
+  };
+
+  return {
+    startCapture,
+    reset,
+  };
+};
 
 export {
   isPacked,
@@ -169,4 +239,5 @@ export {
   startActivityListener,
   startRPCServer,
   stopRPCServer,
+  createAppLoopback,
 };
