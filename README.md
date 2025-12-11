@@ -1,5 +1,8 @@
 # Nerimity Desktop
 
+### Download Nerimity
+[Click here](https://github.com/Nerimity/nerimity-desktop/releases/latest) to download the latest releasae.
+
 ### Building
 
 #### Prerequisites
