@@ -6,6 +6,8 @@ import { openUpdaterWindow } from "./updaterWindow.js";
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 
+app.setAppUserModelId("nerimity.com");
+
 app.on("second-instance", (event, argv, cwd) => {
   if (!getMainWindow()) return;
   getMainWindow().show();
