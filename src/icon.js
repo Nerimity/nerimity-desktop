@@ -6,6 +6,10 @@ const __dirname = import.meta.dirname;
 
 let iconPath;
 let notificationIconPath;
+let windowsOverlayIconPath = join(
+  __dirname,
+  "../build/windows_overlay_notification.png"
+);
 
 if (type == "Windows_NT") {
   iconPath = join(__dirname, "../build/icon.ico");
@@ -20,6 +24,7 @@ if (type == "Windows_NT") {
 
 const appIcon = nativeImage.createFromPath(iconPath);
 const appNotificationIcon = nativeImage.createFromPath(notificationIconPath);
+const windowsOverlayIcon = nativeImage.createFromPath(windowsOverlayIconPath);
 
 /**
  *
@@ -33,7 +38,15 @@ function setAppIcon(opts) {
 
   const icon = iconMap[opts.type];
 
-  opts.window?.setIcon(icon);
+  if (type == "Windows_NT") {
+    if (opts.type === "NORMAL") {
+      opts.window.setOverlayIcon(null, "no_notification");
+    } else {
+      opts.window.setOverlayIcon(windowsOverlayIcon, "notification");
+    }
+  } else {
+    opts.window?.setIcon(icon);
+  }
   opts.tray?.setImage(icon);
 }
 
