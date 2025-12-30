@@ -60,7 +60,17 @@
       "build/icon.png",
       "build/icon-512.png",
       "build/notification_icon.ico",
-      "build/notification_icon.png"
+      "build/notification_icon.png",
+      "build/windows_overlay_notification.png",
+      "build/windows_overlay_notification_1.png",
+      "build/windows_overlay_notification_2.png",
+      "build/windows_overlay_notification_3.png",
+      "build/windows_overlay_notification_4.png",
+      "build/windows_overlay_notification_5.png",
+      "build/windows_overlay_notification_6.png",
+      "build/windows_overlay_notification_7.png",
+      "build/windows_overlay_notification_8.png",
+      "build/windows_overlay_notification_9.png"
     ]
   },
   "dependencies": {
