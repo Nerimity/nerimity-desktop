@@ -161,11 +161,12 @@ async function openMainWindow() {
     if (mainWindow.isMaximized()) return mainWindow.unmaximize();
     mainWindow.maximize();
   });
-  mainWindow.webContents.ipc.on("set-notification", (event, value) => {
+  mainWindow.webContents.ipc.on("set-notification", (event, value, count) => {
     setAppIcon({
       window: mainWindow,
       tray: getTray(),
       type: value ? "NOTIFICATION" : "NORMAL",
+      count,
     });
   });
 

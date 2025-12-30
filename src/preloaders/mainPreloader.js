@@ -23,7 +23,8 @@ contextBridge.exposeInMainWorld("WindowAPI", {
   setAutostartMinimized: (value) =>
     ipcRenderer.send("set-autostart-minimized", value),
 
-  setNotification: (value) => ipcRenderer.send("set-notification", value),
+  setNotification: (value, count) =>
+    ipcRenderer.send("set-notification", value, count),
 
   getDesktopCaptureSources: () =>
     ipcRenderer.invoke("get-desktop-capture-sources"),
