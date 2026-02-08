@@ -1,6 +1,6 @@
 {
   "name": "nerimity-desktop",
-  "version": "1.9.1",
+  "version": "2.0.0",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "type": "module",
@@ -18,7 +18,7 @@
   "author": "SupertigerDev <supertigerrrrr@gmail.com>",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^39.1.2",
+    "electron": "^40.2.1",
     "electron-builder": "^26.0.12",
     "nodemon": "^3.1.11"
   },
