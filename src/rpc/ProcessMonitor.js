@@ -5,7 +5,8 @@ import { EventEmitter } from "events";
 const GITHUB_ASSETS_URL = "https://raw.githubusercontent.com/repo/to/hold/images";
 const POLL_INTERVAL = 5000; // Check every 5 seconds
 
-// Game database - add more games here!
+// Game database - add more games here! 
+//My game choices are quite based.
 const GAME_DATABASE = {
   "hollowknight": {
     name: "Hollow Knight",
