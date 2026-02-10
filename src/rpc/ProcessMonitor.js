@@ -2,7 +2,7 @@ import { readdir, readFile } from "fs/promises";
 import { EventEmitter } from "events";
 
 // Configuration
-const GITHUB_ASSETS_URL = "https://willfixinamoment";
+const GITHUB_ASSETS_URL = "https://raw.githubusercontent.com/XansiVA/nerimity-rpc-assets/main/assets";
 const POLL_INTERVAL = 5000; // Check every 5 seconds
 
 // Game database - add more games here!
