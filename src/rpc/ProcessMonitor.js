@@ -6,7 +6,7 @@ const GITHUB_ASSETS_URL = "https://raw.githubusercontent.com/repo/to/hold/images
 const POLL_INTERVAL = 5000; // Check every 5 seconds
 
 // Game database - add more games here! 
-//My game choices are quite based.
+// My game choices are quite based.
 const GAME_DATABASE = {
   "hollowknight": {
     name: "Hollow Knight",
@@ -74,7 +74,7 @@ export class ProcessMonitor extends EventEmitter {
       const detectedGame = this.detectGame(processes);
       
       if (detectedGame && detectedGame !== this.currentGame) {
-        // New game detected!
+        // New game detected
         this.currentGame = detectedGame;
         const rpcData = this.buildRPCData(detectedGame);
         this.emit("game_detected", rpcData);
@@ -94,7 +94,7 @@ export class ProcessMonitor extends EventEmitter {
     const processes = [];
     
     try {
-      // Read /proc directory
+      // Read /proc directory most if not all linux systems will use this
       const procDirs = await readdir("/proc");
       
       for (const dir of procDirs) {
