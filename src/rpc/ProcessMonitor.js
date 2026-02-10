@@ -2,11 +2,10 @@ import { readdir, readFile } from "fs/promises";
 import { EventEmitter } from "events";
 
 // Configuration
-const GITHUB_ASSETS_URL = "https://raw.githubusercontent.com/repo/to/hold/images";
+const GITHUB_ASSETS_URL = "https://willfixinamoment";
 const POLL_INTERVAL = 5000; // Check every 5 seconds
 
-// Game database - add more games here! 
-// My game choices are quite based.
+// Game database - add more games here!
 const GAME_DATABASE = {
   "hollowknight": {
     name: "Hollow Knight",
@@ -32,14 +31,14 @@ const GAME_DATABASE = {
     image: "terraria.png",
     patterns: ["terraria"]
   },
-  // Add more games here.
-  // This is a test, I currently decided to put it in here to check.
+  // Add more games here...
 };
 
 export class ProcessMonitor extends EventEmitter {
   constructor() {
     super();
     this.currentGame = null;
+    this.gameStartTime = null;
     this.polling = false;
     this.pollInterval = null;
   }
@@ -73,15 +72,17 @@ export class ProcessMonitor extends EventEmitter {
       const processes = await this.getRunningProcesses();
       const detectedGame = this.detectGame(processes);
       
-      if (detectedGame && detectedGame !== this.currentGame) {
-        // New game detected
+      if (detectedGame && detectedGame.id !== this.currentGame?.id) {
+        // New game detected!
         this.currentGame = detectedGame;
+        this.gameStartTime = Date.now(); // Set start time only once
         const rpcData = this.buildRPCData(detectedGame);
         this.emit("game_detected", rpcData);
         Log(`Game detected: ${detectedGame.name}`);
       } else if (!detectedGame && this.currentGame) {
         // Game closed
         this.currentGame = null;
+        this.gameStartTime = null;
         this.emit("game_closed");
         Log("Game closed");
       }
@@ -94,7 +95,7 @@ export class ProcessMonitor extends EventEmitter {
     const processes = [];
     
     try {
-      // Read /proc directory most if not all linux systems will use this
+      // Read /proc directory
       const procDirs = await readdir("/proc");
       
       for (const dir of procDirs) {
@@ -164,7 +165,7 @@ export class ProcessMonitor extends EventEmitter {
       imgSrc: `${GITHUB_ASSETS_URL}/${game.image}`,
       title: game.name,
       subtitle: "Currently playing",
-      startedAt: now,
+      startedAt: this.gameStartTime, // Use the stored start time
       updatedAt: now
     };
   }
