@@ -9,6 +9,7 @@ import {
   getLinuxWindows,
 } from "@nerimity/active-window-listener";
 import { WebSocketRPCServer } from "./rpc/WebSocket.js";
+import { ProcessMonitor } from "./rpc/ProcessMonitor.js";
 import os from "os";
 import {
   getActiveWindowProcessIds,
@@ -101,6 +102,11 @@ async function getAllRunningPrograms(storedPrograms = []) {
 let rpcServer;
 
 /**
+ * @type {ProcessMonitor | undefined}
+ */
+let processMonitor;
+
+/**
  * @type {ProcessListener | undefined}
  */
 let processListener;
@@ -147,6 +153,8 @@ function handleWindow(window, browserWindow) {
   });
 }
 
+const PROCESS_MONITOR_RPC_ID = "wayland_game_monitor";
+
 /**
  *
  * @param {BrowserWindow} browserWindow
@@ -161,10 +169,37 @@ async function startRPCServer(browserWindow, userToken) {
   rpcServer.on("RPC_UPDATE", (data) => {
     handleRPC(data, browserWindow);
   });
+
+  // Start the Wayland-compatible process monitor for game detection, if better implimentation possible, do so UwU
+  if (processMonitor) {
+    processMonitor.stop();
+  }
+  
+  processMonitor = new ProcessMonitor();
+  
+  processMonitor.on("game_detected", (rpcData) => {
+    console.log("Game detected by ProcessMonitor:", rpcData);
+    rpcServer.updateRPC(PROCESS_MONITOR_RPC_ID, rpcData);
+  });
+  
+  processMonitor.on("game_closed", () => {
+    console.log("Game closed, removing RPC");
+    rpcServer.removeRPC(PROCESS_MONITOR_RPC_ID);
+  });
+  
+  processMonitor.start();
 }
+
 async function stopRPCServer() {
-  rpcServer.destroy();
-  rpcServer = undefined;
+  if (processMonitor) {
+    processMonitor.stop();
+    processMonitor = undefined;
+  }
+  
+  if (rpcServer) {
+    rpcServer.destroy();
+    rpcServer = undefined;
+  }
 }
 
 function handleRPC(data, browserWindow) {
