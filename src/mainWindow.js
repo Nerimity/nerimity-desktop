@@ -1,4 +1,4 @@
-import { BrowserWindow, app, shell, desktopCapturer } from "electron";
+import { BrowserWindow, app, shell, desktopCapturer, ipcMain } from "electron";
 import { join, basename } from "path";
 import {
   getAutostart,
@@ -243,6 +243,10 @@ async function openMainWindow() {
     }
   });
 
+  ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
+  });
+
   mainWindow.webContents.on("context-menu", (event, params) => {
     mainWindow.webContents.send("spellcheck", params.dictionarySuggestions);
   });
@@ -263,7 +267,7 @@ async function openMainWindow() {
       }
     }, 5000);
   });
-  if (isPacked()) {
+  if (!isPacked()) {
     await mainWindow.loadURL("https://nerimity.com/login");
   } else {
     await mainWindow.loadURL("http://localhost:3000/login");

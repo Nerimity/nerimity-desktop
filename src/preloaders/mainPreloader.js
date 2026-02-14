@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer, webContents } = require("electron");
 
 contextBridge.exposeInMainWorld("WindowAPI", {
   isElectron: true,
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   minimize: () => ipcRenderer.send("window-minimize"),
   toggleMaximize: () => ipcRenderer.send("window-toggle-maximize"),
   close: () => ipcRenderer.send("window-close"),
