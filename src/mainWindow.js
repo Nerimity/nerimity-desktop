@@ -267,7 +267,7 @@ async function openMainWindow() {
       }
     }, 5000);
   });
-  if (!isPacked()) {
+  if (isPacked()) {
     await mainWindow.loadURL("https://nerimity.com/login");
   } else {
     await mainWindow.loadURL("http://localhost:3000/login");
