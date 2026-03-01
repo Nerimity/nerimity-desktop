@@ -11,7 +11,14 @@ on:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
-
+    
+    // I hardcoded them in for now, but you can change this if
+    // you want them to use github secrets. ¯\_(ツ)_/¯
+    env:
+      DEFAULT_URL: "https://app.nerimity.com"
+      LATEST_URL: "https://latest.nerimity.com"
+      DEV_URL: "http://localhost:3000"
+      
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
