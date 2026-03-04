@@ -3,6 +3,7 @@ import { openMainWindow, getMainWindow } from "./mainWindow.js";
 import { setTray, getTray } from "./tray.js";
 import { isPacked } from "./utils.js";
 import { openUpdaterWindow } from "./updaterWindow.js";
+import { getStartupURL } from "./startupUrl.js";
 
 const singleInstanceLock = app.requestSingleInstanceLock();
 
@@ -15,7 +16,7 @@ app.on("second-instance", (event, argv, cwd) => {
   getMainWindow().focus();
 });
 
-function onReady() {
+async function onReady() {
   if (!singleInstanceLock) {
     app.quit();
     return;
@@ -24,11 +25,19 @@ function onReady() {
   if (process.platform !== "darwin") {
     setTray();
   }
+  const baseURL = await getStartupURL(app.isPackaged);
   if (isPacked()) {
     openUpdaterWindow();
   } else {
-    openMainWindow();
+    openMainWindow(baseURL)
   }
+  
+  session.defaultSession.cookies.on("changed", (event, cookie, cause, removed) => {
+    if (cookie.name === "useLatestURL" && !removed && isPacked()) {
+      app.relaunch();
+      app.quit();
+    }
+  });
 
   const filter = {
     urls: [

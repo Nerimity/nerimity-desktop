@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import { BrowserWindow, app, shell, desktopCapturer, ipcMain } from "electron";
 import { join, basename } from "path";
 import {
@@ -12,6 +15,7 @@ import {
 } from "./store.js";
 import { setAppIcon, appIcon } from "./icon.js";
 import { getTray } from "./tray.js";
+import { getStartupURL } from "./startupUrl.js";
 import {
   isPacked,
   getAllRunningPrograms,
@@ -48,7 +52,7 @@ let desktopCaptureSource = null;
 //  */
 let globalKeyboard = null;
 let downKeys = new Set();
-async function openMainWindow() {
+async function openMainWindow(baseURL) {
   setStartup();
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -255,23 +259,32 @@ async function openMainWindow() {
   mainWindow.webContents.on("did-navigate", () => {
     didLoadSuccess = true;
   });
+  
   mainWindow.webContents.on("did-fail-load", function () {
     if (didLoadSuccess) return;
     console.log("Failed to load, retrying... in 5 seconds");
 
     setTimeout(async () => {
-      if (isPacked()) {
-        await mainWindow.loadURL("https://nerimity.com/login");
-      } else {
-        await mainWindow.loadURL("http://localhost:3000/login");
+      try {
+        if (isPacked()) {
+          await mainWindow.loadURL(baseURL + "/login");
+        } else {
+          await mainWindow.loadURL(baseURL + "/login"); // dev
+        }
+      } catch (error) {
+        //suppress error; did-fail-load event will auto re-trigger
       }
     }, 5000);
   });
-  if (isPacked()) {
-    await mainWindow.loadURL("https://nerimity.com/login");
-  } else {
-    await mainWindow.loadURL("http://localhost:3000/login");
-    mainWindow.webContents.openDevTools({ mode: "detach" });
+  try {
+    if (isPacked()) {
+      await mainWindow.loadURL(baseURL + "/login");
+    } else {
+      await mainWindow.loadURL(baseURL + "/login"); // dev
+      mainWindow.webContents.openDevTools({ mode: "detach" });
+    }
+  } catch (error) {
+    console.log("Initial load failed, retrying...");
   }
 }
 
