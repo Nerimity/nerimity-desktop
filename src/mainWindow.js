@@ -21,6 +21,11 @@ import {
   createAppLoopback,
 } from "./utils.js";
 
+import { uIOhook, UiohookKey } from 'uiohook-napi'
+
+const KeyCodeToName = Object.values(UiohookKey).reduce((acc, key, i) => ({ ...acc, [key]: Object.keys(UiohookKey)[i] }), {});
+
+
 const args = process.argv;
 const startupMinimized = args.includes("--hidden");
 
@@ -43,10 +48,7 @@ let desktopCaptureSources = null;
  */
 let desktopCaptureSource = null;
 
-// /**
-//  * @type { GlobalKeyboardListener | null }
-//  */
-let globalKeyboard = null;
+
 let downKeys = new Set();
 async function openMainWindow() {
   setStartup();
@@ -132,29 +134,32 @@ async function openMainWindow() {
   };
 
   mainWindow.webContents.ipc.on("start-global-key-listener", () => {
-    // if (globalKeyboard)  {
-    //   globalKeyboard.kill();
-    //   downKeys.clear();
-    //   globalKeyboard = null;
-    // }
-    // globalKeyboard = new GlobalKeyboardListener();
-    // globalKeyboard.addListener(function (e, down) {
-    //   if (e.state === "DOWN") {
-    //     if (!downKeys.has(e.vKey)){
-    //       sendKey(e, down)
-    //     }
-    //     downKeys.add(e.vKey);
-    //   } else {
-    //     sendKey(e, down)
-    //     downKeys.delete(e.vKey);
-    //   }
-    // });
+    downKeys.clear();
+    uIOhook.start();
+    uIOhook.removeAllListeners()
+
+    uIOhook.on("keydown", (e) => {
+      if (!downKeys.has(e.keycode)){
+        sendKey({
+          vKey: e.keycode,
+          name: KeyCodeToName[e.keycode.toString()],
+          state: "DOWN"
+        }, false)
+      }
+      downKeys.add(e.keycode);
+    })
+    uIOhook.on("keyup", (e) => {
+      sendKey({
+        vKey: e.keycode,
+        name: KeyCodeToName[e.keycode.toString()],
+        state: "UP"
+      }, true)
+      downKeys.delete(e.keycode);
+    })
   });
   mainWindow.webContents.ipc.on("stop-global-key-listener", () => {
-    // if (!globalKeyboard) return;
-    // globalKeyboard.kill();
-    // downKeys.clear();
-    // globalKeyboard = null;
+    uIOhook.stop();
+    downKeys.clear();
   });
 
   mainWindow.webContents.ipc.on("window-toggle-maximize", () => {
