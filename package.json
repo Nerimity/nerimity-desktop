@@ -1,6 +1,6 @@
 {
   "name": "nerimity-desktop",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "A modern and sleek chat app.",
   "main": "src/main.js",
   "type": "module",
@@ -25,6 +25,8 @@
   "build": {
     "appId": "nerimity.com",
     "productName": "Nerimity",
+    "npmRebuild": true,
+    "buildDependenciesFromSource": true,
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
