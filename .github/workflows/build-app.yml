@@ -24,11 +24,29 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install Linux Build Dependencies
+            - name: Install Linux Build Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libx11-dev libxtst-dev libxkbfile-dev libx11-xcb-dev libxss-dev libgconf2-dev libnss3-dev libasound2-dev libcanberra-gtk-module libcanberra-gtk3-module libatk-adaptor libgail-common
+          sudo apt-get install -y \
+            pkg-config \
+            build-essential \
+            libx11-dev \
+            libxrandr-dev \
+            libxtst-dev \
+            libxi-dev \
+            libxt-dev \
+            libxkbfile-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libx11-xcb-dev \
+            libxss-dev \
+            libnss3-dev \
+            libasound2-dev \
+            libcanberra-gtk-module \
+            libcanberra-gtk3-module \
+            libatk-adaptor \
+            libgail-common
       - name: Build/release Electron app
         uses: samuelmeuli/action-electron-builder@v1.6.0
         with:
