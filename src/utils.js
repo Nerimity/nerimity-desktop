@@ -153,6 +153,8 @@ function handleWindow(window, browserWindow) {
  */
 async function startRPCServer(browserWindow, userToken) {
   if (rpcServer) {
+    // added timeout to connect faster.
+    // todo: must reset rpc extension port back to index 0 when successfully connected and then disconnected.
     await timers.setTimeout(4000);
     rpcServer.destroy();
   }
