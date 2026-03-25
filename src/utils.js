@@ -17,6 +17,7 @@ import {
   stopAudioCapture,
 } from "application-loopback";
 import { getMainWindow } from "./mainWindow.js";
+import timers from "timers/promises";
 
 const isLinux = os.type() === "Linux";
 
@@ -113,14 +114,13 @@ let processListener;
 async function startActivityListener(listenToPrograms = [], browserWindow) {
   const programNameArr = listenToPrograms.map((p) => p.filename);
   if (processListener) {
-    if (rpcServer?.RPCs?.length) return;
     processListener.updateExecutableFilenames(programNameArr);
     handleWindow(processListener.lastActiveWindow(), browserWindow);
     return;
   }
 
   processListener = new (isLinux ? ProcessListenerLinux : ProcessListener)(
-    programNameArr
+    programNameArr,
   );
   processListener.on("change", (window) => {
     if (rpcServer?.RPCs?.length) return;
@@ -153,6 +153,7 @@ function handleWindow(window, browserWindow) {
  */
 async function startRPCServer(browserWindow, userToken) {
   if (rpcServer) {
+    await timers.setTimeout(4000);
     rpcServer.destroy();
   }
 
@@ -168,7 +169,6 @@ async function stopRPCServer() {
 }
 
 function handleRPC(data, browserWindow) {
-  if (!data) return browserWindow.webContents.send("rpc-changed", false);
   browserWindow.webContents.send("rpc-changed", data);
 }
 
@@ -182,8 +182,8 @@ const createAppLoopback = () => {
         "app.asar.unpacked",
         "node_modules",
         "application-loopback",
-        "bin"
-      )
+        "bin",
+      ),
     );
   }
 

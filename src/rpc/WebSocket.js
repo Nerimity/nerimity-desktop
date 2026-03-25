@@ -22,7 +22,7 @@ export class WebSocketRPCServer extends EventEmitter {
         id,
         data: sanitizedData(data),
       });
-      if (this.RPCs.length === 1) this.emitEvent();
+      this.emitEvent();
       return;
     }
 
@@ -30,7 +30,7 @@ export class WebSocketRPCServer extends EventEmitter {
       return;
     }
     this.RPCs[index].data = sanitizedData(data);
-    if (index === 0) this.emitEvent();
+    this.emitEvent();
   }
   removeRPC(id) {
     const index = this.RPCs.findIndex((rpc) => rpc.id === id);
@@ -38,16 +38,10 @@ export class WebSocketRPCServer extends EventEmitter {
       return;
     }
     this.RPCs.splice(index, 1);
-    if (index === 0) {
-      this.emitEvent();
-    }
+    this.emitEvent();
   }
   emitEvent() {
-    const firstRPC = this.RPCs[0];
-    if (!firstRPC) {
-      return this.emit("RPC_UPDATE", undefined);
-    }
-    this.emit("RPC_UPDATE", firstRPC.data);
+    this.emit("RPC_UPDATE", this.RPCs);
   }
   async serve() {
     const port = await getPortPromise({
@@ -73,11 +67,14 @@ export class WebSocketRPCServer extends EventEmitter {
         client.close();
         return;
       }
-      const validAppId = appId === "checker" ? true : await checkAppId(appId, this.userToken, this.isPacked);
+      const validAppId =
+        appId === "checker"
+          ? true
+          : await checkAppId(appId, this.userToken, this.isPacked);
       if (!validAppId) {
         Log("Invalid App Id");
-        client.close();
-        return;
+        // client.close();
+        // return;
       }
       Log("Connected!");
       let greeted = false;
@@ -91,7 +88,7 @@ export class WebSocketRPCServer extends EventEmitter {
       client.send(
         JSON.stringify({
           name: "HELLO_NERIMITY_RPC",
-        })
+        }),
       );
 
       if (appId === "checker") {
@@ -137,8 +134,11 @@ export class WebSocketRPCServer extends EventEmitter {
     Log("All ports are in use, giving up :(");
   }
   destroy() {
-    this.checkIfListeningInterval && clearInterval(this.checkIfListeningInterval);
+    this.checkIfListeningInterval &&
+      clearInterval(this.checkIfListeningInterval);
     if (this.ws) {
+      console.log("closed");
+      this.ws.clients.forEach((client) => client.close());
       this.ws?.close();
       this.RPCs = [];
       this.emitEvent();
@@ -184,7 +184,7 @@ const sanitizedData = (data) => {
       updatedAt: data.updatedAt,
       endsAt: data.endsAt,
       speed: data.speed,
-    })
+    }),
   );
 };
 
@@ -209,16 +209,15 @@ const getAppId = (url) => {
   return appId;
 };
 
-
 const checkIfListening = (port) => {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     Log("Checking if listening...");
     const client = new WebSocket(`ws://localhost:${port}/?appId=checker`);
     client.onclose = () => {
       Log("Failed.");
       client.close();
       resolve(false);
-    }
+    };
     client.onmessage = (event) => {
       const payload = safeParseJson(event.data);
       if (!payload) return client.close();
@@ -228,6 +227,6 @@ const checkIfListening = (port) => {
         client.removeAllListeners();
         client.close();
       }
-    }
-  })
-}
+    };
+  });
+};

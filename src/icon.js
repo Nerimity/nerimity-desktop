@@ -9,7 +9,7 @@ let iconPath;
 let notificationIconPath;
 let windowsOverlayIconPath = join(
   __dirname,
-  "../build/windows_overlay_notification.png"
+  "../build/windows_overlay_notification.png",
 );
 
 if (type == "Windows_NT") {
@@ -30,7 +30,7 @@ const windowsOverlayIcon = nativeImage.createFromPath(windowsOverlayIconPath);
 const notificationCountIcons = Array.from({ length: 10 }, (_, index) => {
   if (index === 0) return windowsOverlayIcon;
   return nativeImage.createFromPath(
-    join(__dirname, `../build/windows_overlay_notification_${index}.png`)
+    join(__dirname, `../build/windows_overlay_notification_${index}.png`),
   );
 });
 
@@ -44,7 +44,6 @@ function setOverlayIcon(opts) {
     return;
   }
 
-  console.log(opts.count);
   const icon = notificationCountIcons[opts.count > 9 ? 9 : opts.count];
   opts.window.setOverlayIcon(icon, "notification");
 }
@@ -54,7 +53,6 @@ function setOverlayIcon(opts) {
  * @param {{window?: import("electron").BrowserWindow, tray?: import("electron").Tray, type: "NORMAL" | "NOTIFICATION", count?: number}} opts
  */
 function setAppIcon(opts) {
-  console.log(opts.count);
   const iconMap = {
     NORMAL: appIcon,
     NOTIFICATION: appNotificationIcon,

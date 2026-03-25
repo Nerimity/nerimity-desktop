@@ -21,10 +21,12 @@ import {
   createAppLoopback,
 } from "./utils.js";
 
-import { uIOhook, UiohookKey } from 'uiohook-napi'
+import { uIOhook, UiohookKey } from "uiohook-napi";
 
-const KeyCodeToName = Object.values(UiohookKey).reduce((acc, key, i) => ({ ...acc, [key]: Object.keys(UiohookKey)[i] }), {});
-
+const KeyCodeToName = Object.values(UiohookKey).reduce(
+  (acc, key, i) => ({ ...acc, [key]: Object.keys(UiohookKey)[i] }),
+  {},
+);
 
 const args = process.argv;
 const startupMinimized = args.includes("--hidden");
@@ -47,7 +49,6 @@ let desktopCaptureSources = null;
  * @type { Electron.DesktopCapturerSource | null }
  */
 let desktopCaptureSource = null;
-
 
 let downKeys = new Set();
 async function openMainWindow() {
@@ -87,10 +88,10 @@ async function openMainWindow() {
     app.exit();
   });
   mainWindow.webContents.ipc.on("app-loopback-start", (e, captureSourceId) =>
-    appLoopback.startCapture(captureSourceId)
+    appLoopback.startCapture(captureSourceId),
   );
   mainWindow.webContents.ipc.on("app-loopback-reset", () =>
-    appLoopback.reset()
+    appLoopback.reset(),
   );
 
   mainWindow.webContents.ipc.on("window-minimize", () => mainWindow.minimize());
@@ -103,26 +104,26 @@ async function openMainWindow() {
   });
 
   mainWindow.webContents.ipc.handle("get-hw-acceleration-disabled", (event) =>
-    getHardwareAccelerationDisabled()
+    getHardwareAccelerationDisabled(),
   );
   mainWindow.webContents.ipc.on(
     "set-hw-acceleration-disabled",
     (event, value) => {
       setHardwareAccelerationDisabled(value);
-    }
+    },
   );
   mainWindow.webContents.ipc.handle("get-custom-titlebar-disabled", (event) =>
-    getCustomTitlebarDisabled()
+    getCustomTitlebarDisabled(),
   );
   mainWindow.webContents.ipc.on(
     "set-custom-titlebar-disabled",
     (event, value) => {
       setCustomTitlebarDisabled(value);
-    }
+    },
   );
 
   mainWindow.webContents.ipc.handle("get-autostart-minimized", (event) =>
-    getAutostartMinimized()
+    getAutostartMinimized(),
   );
   mainWindow.webContents.ipc.on("set-autostart-minimized", (event, value) => {
     setAutostartMinimized(value);
@@ -136,26 +137,32 @@ async function openMainWindow() {
   mainWindow.webContents.ipc.on("start-global-key-listener", () => {
     downKeys.clear();
     uIOhook.start();
-    uIOhook.removeAllListeners()
+    uIOhook.removeAllListeners();
 
     uIOhook.on("keydown", (e) => {
-      if (!downKeys.has(e.keycode)){
-        sendKey({
-          vKey: e.keycode,
-          name: KeyCodeToName[e.keycode.toString()],
-          state: "DOWN"
-        }, false)
+      if (!downKeys.has(e.keycode)) {
+        sendKey(
+          {
+            vKey: e.keycode,
+            name: KeyCodeToName[e.keycode.toString()],
+            state: "DOWN",
+          },
+          false,
+        );
       }
       downKeys.add(e.keycode);
-    })
+    });
     uIOhook.on("keyup", (e) => {
-      sendKey({
-        vKey: e.keycode,
-        name: KeyCodeToName[e.keycode.toString()],
-        state: "UP"
-      }, true)
+      sendKey(
+        {
+          vKey: e.keycode,
+          name: KeyCodeToName[e.keycode.toString()],
+          state: "UP",
+        },
+        true,
+      );
       downKeys.delete(e.keycode);
-    })
+    });
   });
   mainWindow.webContents.ipc.on("stop-global-key-listener", () => {
     uIOhook.stop();
@@ -194,24 +201,24 @@ async function openMainWindow() {
         name: source.name,
         thumbnailUrl: source.thumbnail.toDataURL(),
       }));
-    }
+    },
   );
 
   mainWindow.webContents.ipc.handle(
     "set-desktop-capture-source-id",
     async (event, id) => {
       desktopCaptureSource = desktopCaptureSources.find(
-        (source) => source.id === id
+        (source) => source.id === id,
       );
       return true;
-    }
+    },
   );
 
   mainWindow.webContents.ipc.handle(
     "get-running-programs",
     async (event, ignoredPrograms = []) => {
       return await getAllRunningPrograms(ignoredPrograms);
-    }
+    },
   );
 
   mainWindow.webContents.ipc.on("replace-misspelling", (event, word) => {
@@ -221,7 +228,7 @@ async function openMainWindow() {
     "restart-activity-status",
     (event, listenToPrograms = []) => {
       startActivityListener(listenToPrograms, mainWindow);
-    }
+    },
   );
   mainWindow.webContents.ipc.on("restart-rpc-server", async () => {
     const userToken = await getUserToken();
@@ -248,7 +255,7 @@ async function openMainWindow() {
     }
   });
 
-  ipcMain.handle('get-app-version', () => {
+  ipcMain.handle("get-app-version", () => {
     return app.getVersion();
   });
 
@@ -283,7 +290,7 @@ async function openMainWindow() {
 const getUserToken = async () => {
   const token = await mainWindow.webContents.executeJavaScript(
     'localStorage.getItem("userToken");',
-    true
+    true,
   );
   return token;
 };
