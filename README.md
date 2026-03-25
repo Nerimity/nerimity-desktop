@@ -45,7 +45,7 @@ npm run app:dist -- --linux  # Linux
 
 When you want to create a new release, follow these steps:
 
-1. Update the version in your project's `package.json` file (e.g. `2.0.0`)
+1. Update the version in your project's `package.json` file (e.g. `2.0.0`)d
 2. Commit that change (`git commit -am v2.2.0`)
 3. Tag your commit (`git tag v2.2.0`).
 4. Push your changes to GitHub (`git push && git push --tags`)
