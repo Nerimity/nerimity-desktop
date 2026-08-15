@@ -18,8 +18,8 @@
   "author": "SupertigerDev <supertigerrrrr@gmail.com>",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^41.0.4",
-    "electron-builder": "^26.8.1",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
     "nodemon": "^3.1.14"
   },
   "build": {
@@ -79,10 +79,17 @@
     "@nerimity/active-window-listener": "^2.0.6",
     "application-loopback": "^1.2.7",
     "electron-store": "^11.0.2",
-    "electron-updater": "^6.8.3",
+    "electron-updater": "^6.8.9",
     "node-abi": "^3.78.0",
     "portfinder": "^1.0.38",
     "uiohook-napi": "^1.5.5",
-    "ws": "^8.20.0"
+    "ws": "^8.21.3"
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true,
+    "extract-file-icon@0.3.2": true,
+    "get-windows@9.3.0": true,
+    "node-window-manager@2.2.4": true,
+    "uiohook-napi@1.5.5": true
   }
 }
