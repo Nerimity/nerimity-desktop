@@ -35,6 +35,13 @@ if (getHardwareAccelerationDisabled()) {
   app.disableHardwareAcceleration();
 }
 
+if (!isPacked()) {
+  app.commandLine.appendSwitch(
+  'unsafely-treat-insecure-origin-as-secure',
+  'http://local.nerimity.com:3000'
+)
+}
+
 const __dirname = import.meta.dirname;
 
 /**
@@ -92,6 +99,10 @@ async function openMainWindow() {
       type: "CaptureApp",
       chromeMediaSourceId: captureSourceId
     }),
+  );
+
+  mainWindow.webContents.ipc.on("app-loopback-start-v2", (e, opts) =>
+    appLoopback.startCapture(opts),
   );
   mainWindow.webContents.ipc.on("app-loopback-reset", () =>
     appLoopback.reset(),
@@ -285,7 +296,8 @@ async function openMainWindow() {
   if (isPacked()) {
     await mainWindow.loadURL("https://nerimity.com/login");
   } else {
-    await mainWindow.loadURL("http://localhost:3000/login");
+    // await mainWindow.loadURL("http://localhost:3000/login");
+    await mainWindow.loadURL("http://local.nerimity.com:3000/login");
     mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 }

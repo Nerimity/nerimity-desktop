@@ -65,6 +65,10 @@ contextBridge.exposeInMainWorld("WindowAPI", {
 
   appLoopbackStart: (captureSourceId) =>
     ipcRenderer.send("app-loopback-start", captureSourceId),
+
+  appLoopbackStartV2: (opts) =>
+    ipcRenderer.send("app-loopback-start-v2", opts),
+
   appLoopbackReset: () => ipcRenderer.send("app-loopback-reset"),
   appLoopbackData: (callback) =>
     ipcRenderer.on("app-loopback-data", (event, val) => callback(val)),

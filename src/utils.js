@@ -183,12 +183,6 @@ let loopbackCapture = null;
 
 const createAppLoopback = () => {
 
-
-
-
-
-
-
   /**
    *
    * @param {number} hwnd
@@ -237,13 +231,13 @@ const createAppLoopback = () => {
     if (opts.type === "CaptureSystem") {
       if (!opts.excludeSelf) {
         loopbackCapture = new loopback.LoopbackCapture();
-        loopbackCapture.startSystemAudio((buffer) => {
+        loopbackCapture.startSystemAudio((chunk) => {
           getMainWindow()?.webContents.send("app-loopback-data", chunk);
         })
       }
 
       if (opts.excludeSelf) {
-        const selfProcessId = getMainWindow().webContents.getOSProcessId();
+        const selfProcessId = process.pid;
         loopbackCapture = new loopback.LoopbackCapture();
         loopbackCapture.start(selfProcessId, false, (chunk) => {
           getMainWindow()?.webContents.send("app-loopback-data", chunk);
