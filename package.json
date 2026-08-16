@@ -80,6 +80,7 @@
     "application-loopback": "^1.2.7",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.9",
+    "loopback-capture": "^2.0.0",
     "node-abi": "^3.78.0",
     "portfinder": "^1.0.38",
     "uiohook-napi": "^1.5.5",

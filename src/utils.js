@@ -10,14 +10,11 @@ import {
 } from "@nerimity/active-window-listener";
 import { WebSocketRPCServer } from "./rpc/WebSocket.js";
 import os from "os";
-import {
-  getActiveWindowProcessIds,
-  startAudioCapture,
-  setExecutablesRoot,
-  stopAudioCapture,
-} from "application-loopback";
+
 import { getMainWindow } from "./mainWindow.js";
 import timers from "timers/promises";
+import loopback from 'loopback-capture';
+
 
 const isLinux = os.type() === "Linux";
 
@@ -80,7 +77,7 @@ async function getAllRunningPrograms(storedPrograms = []) {
     if (storedPrograms.find((sp) => sp.filename === filename)) continue;
 
     let title = window.getTitle();
-    const exif = await window.getExif()?.catch(() => {});
+    const exif = await window.getExif()?.catch(() => { });
     if (exif.FileDescription && exif.FileDescription.trim().length) {
       title = exif.FileDescription;
     } else if (exif.ProductName && exif.ProductName.trim().length) {
@@ -174,28 +171,31 @@ function handleRPC(data, browserWindow) {
   browserWindow.webContents.send("rpc-changed", data);
 }
 
+
+
+
+/**
+ * @type {import("loopback-capture").LoopbackCapture | null}
+ */
+let loopbackCapture = null;
+
+
+
 const createAppLoopback = () => {
-  if (isPacked()) {
-    setExecutablesRoot(
-      resolve(
-        import.meta.dirname,
-        "..",
-        "..",
-        "app.asar.unpacked",
-        "node_modules",
-        "application-loopback",
-        "bin",
-      ),
-    );
-  }
+
+
+
+
+
+
 
   /**
    *
    * @param {number} hwnd
    */
   const hwndToProcessId = async (hwnd) => {
-    const windows = await getActiveWindowProcessIds();
-    return windows.find((w) => w.hwnd === hwnd)?.processId;
+    const windows = await getWindows();
+    return windows.find((w) => w.id.toString() === hwnd)?.processId;
   };
 
   /**
@@ -216,17 +216,22 @@ const createAppLoopback = () => {
       console.log("AppLoopback: processId not found");
     }
     console.log("AppLoopback: processId", processId);
-    startAudioCapture(processId, {
-      onData: (d) => {
-        getMainWindow()?.webContents.send("app-loopback-data", d);
-      },
+
+
+    loopbackCapture = new loopback.LoopbackCapture();
+    loopbackCapture.start(processId, true, (chunk) => {
+      getMainWindow()?.webContents.send("app-loopback-data", chunk);
     });
+
+
+
   };
 
   const reset = () => {
+    loopbackCapture?.stop();
     if (!processId) return;
-    stopAudioCapture(processId);
     processId = null;
+    loopbackCapture = null;
   };
 
   return {
