@@ -88,7 +88,10 @@ async function openMainWindow() {
     app.exit();
   });
   mainWindow.webContents.ipc.on("app-loopback-start", (e, captureSourceId) =>
-    appLoopback.startCapture(captureSourceId),
+    appLoopback.startCapture({
+      type: "CaptureApp",
+      chromeMediaSourceId: captureSourceId
+    }),
   );
   mainWindow.webContents.ipc.on("app-loopback-reset", () =>
     appLoopback.reset(),

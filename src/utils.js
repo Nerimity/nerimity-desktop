@@ -205,23 +205,53 @@ const createAppLoopback = () => {
 
   /**
    *
-   * @param {string} chromeMediaSourceId
+   * @param {{
+   *  type: "CaptureApp",
+   *  chromeMediaSourceId: string;
+   * } | 
+   * {
+   *  type: "CaptureSystem",
+   *  excludeSelf: boolean 
+   * }} opts
    */
-  const startCapture = async (chromeMediaSourceId) => {
+  const startCapture = async (opts) => {
     reset();
-    const hwnd = chromeMediaSourceId.split(":")[1];
-    console.log("AppLoopback: hwnd", hwnd);
-    processId = await hwndToProcessId(hwnd);
-    if (!processId) {
-      console.log("AppLoopback: processId not found");
+
+
+    if (opts.type === "CaptureApp") {
+      const hwnd = opts.chromeMediaSourceId.split(":")[1];
+      console.log("AppLoopback: hwnd", hwnd);
+      processId = await hwndToProcessId(hwnd);
+      if (!processId) {
+        console.log("AppLoopback: processId not found");
+      }
+      console.log("AppLoopback: processId", processId);
+
+
+      loopbackCapture = new loopback.LoopbackCapture();
+      loopbackCapture.start(processId, true, (chunk) => {
+        getMainWindow()?.webContents.send("app-loopback-data", chunk);
+      });
     }
-    console.log("AppLoopback: processId", processId);
+
+    if (opts.type === "CaptureSystem") {
+      if (!opts.excludeSelf) {
+        loopbackCapture = new loopback.LoopbackCapture();
+        loopbackCapture.startSystemAudio((buffer) => {
+          getMainWindow()?.webContents.send("app-loopback-data", chunk);
+        })
+      }
+
+      if (opts.excludeSelf) {
+        const selfProcessId = getMainWindow().webContents.getOSProcessId();
+        loopbackCapture = new loopback.LoopbackCapture();
+        loopbackCapture.start(selfProcessId, false, (chunk) => {
+          getMainWindow()?.webContents.send("app-loopback-data", chunk);
+        });
+      }
+    }
 
 
-    loopbackCapture = new loopback.LoopbackCapture();
-    loopbackCapture.start(processId, true, (chunk) => {
-      getMainWindow()?.webContents.send("app-loopback-data", chunk);
-    });
 
 
 
