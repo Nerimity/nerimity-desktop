@@ -272,14 +272,14 @@ async function openMainWindow() {
     console.log("Failed to load, retrying... in 5 seconds");
 
     setTimeout(async () => {
-      if (!isPacked()) {
+      if (isPacked()) {
         await mainWindow.loadURL("https://nerimity.com/login");
       } else {
         await mainWindow.loadURL("http://localhost:3000/login");
       }
     }, 5000);
   });
-  if (!isPacked()) {
+  if (isPacked()) {
     await mainWindow.loadURL("https://nerimity.com/login");
   } else {
     await mainWindow.loadURL("http://localhost:3000/login");
