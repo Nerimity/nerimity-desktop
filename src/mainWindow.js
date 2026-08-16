@@ -94,6 +94,8 @@ async function openMainWindow() {
     app.relaunch();
     app.exit();
   });
+  
+  // deprecated
   mainWindow.webContents.ipc.on("app-loopback-start", (e, captureSourceId) =>
     appLoopback.startCapture({
       type: "CaptureApp",
