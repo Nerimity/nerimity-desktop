@@ -37,9 +37,9 @@ if (getHardwareAccelerationDisabled()) {
 
 if (!isPacked()) {
   app.commandLine.appendSwitch(
-  'unsafely-treat-insecure-origin-as-secure',
-  'http://local.nerimity.com:3000'
-)
+    'unsafely-treat-insecure-origin-as-secure',
+    'http://local.nerimity.com:3000'
+  )
 }
 
 const __dirname = import.meta.dirname;
@@ -94,7 +94,7 @@ async function openMainWindow() {
     app.relaunch();
     app.exit();
   });
-  
+
   // deprecated
   mainWindow.webContents.ipc.on("app-loopback-start", (e, captureSourceId) =>
     appLoopback.startCapture({
@@ -257,6 +257,8 @@ async function openMainWindow() {
       event.preventDefault();
       mainWindow.hide();
     }
+
+    appLoopback.reset();
     return false;
   });
   mainWindow.webContents.ipc.on("clipboard-actions", (event, action) => {

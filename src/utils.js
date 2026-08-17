@@ -13,7 +13,7 @@ import os from "os";
 
 import { getMainWindow } from "./mainWindow.js";
 import timers from "timers/promises";
-import loopback from 'loopback-capture';
+// import loopback from 'loopback-capture';
 
 
 const isLinux = os.type() === "Linux";
@@ -209,6 +209,7 @@ const createAppLoopback = () => {
    * }} opts
    */
   const startCapture = async (opts) => {
+    const loopback = await (await import("loopback-capture")).default
     reset();
 
 
@@ -223,33 +224,27 @@ const createAppLoopback = () => {
 
 
       loopbackCapture = new loopback.LoopbackCapture();
-      loopbackCapture.start(processId, true, (chunk) => {
-        getMainWindow()?.webContents.send("app-loopback-data", chunk);
-      });
+      loopbackCapture.start(processId, true, onLoopbackData);
     }
 
     if (opts.type === "CaptureSystem") {
       if (!opts.excludeSelf) {
         loopbackCapture = new loopback.LoopbackCapture();
-        loopbackCapture.startSystemAudio((chunk) => {
-          getMainWindow()?.webContents.send("app-loopback-data", chunk);
-        })
+        loopbackCapture.startSystemAudio(onLoopbackData)
       }
 
       if (opts.excludeSelf) {
         const selfProcessId = process.pid;
         loopbackCapture = new loopback.LoopbackCapture();
-        loopbackCapture.start(selfProcessId, false, (chunk) => {
-          getMainWindow()?.webContents.send("app-loopback-data", chunk);
-        });
+        loopbackCapture.start(selfProcessId, false, onLoopbackData);
       }
     }
-
-
-
-
-
   };
+
+  const onLoopbackData = (chunk) => {
+    getMainWindow()?.webContents.send("app-loopback-data", chunk);
+  }
+
 
   const reset = () => {
     loopbackCapture?.stop();

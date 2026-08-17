@@ -77,7 +77,6 @@
   },
   "dependencies": {
     "@nerimity/active-window-listener": "^2.0.6",
-    "application-loopback": "^1.2.7",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.8.9",
     "loopback-capture": "^2.0.0",
