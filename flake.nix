@@ -47,8 +47,8 @@
       };
       
       postPatch = ''
-            substituteInPlace src/utils.js \
-                --replace "execFile !== \"electron\";" "true"
+         #   substituteInPlace src/utils.js \
+         #       --replace "execFile !== \"electron\";" "true"
             substituteInPlace src/main.js \
                 --replace "openUpdaterWindow();" "openMainWindow();"
       '';
