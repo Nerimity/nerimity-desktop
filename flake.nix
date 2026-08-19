@@ -47,8 +47,8 @@
       };
       
       postPatch = ''
-         #   substituteInPlace src/utils.js \
-         #       --replace "execFile !== \"electron\";" "true"
+            substituteInPlace src/utils.js \
+                --replace "execFile !== \"electron\";" "true"
             substituteInPlace src/main.js \
                 --replace "openUpdaterWindow();" "openMainWindow();"
       '';
@@ -65,8 +65,9 @@
       
          
       postInstall = ''
-        makeWrapper ${pkgs.electron}/bin/nerimity $out/bin/nerimity \
-          --add-flags $out/lib/node_modules/nerimity-desktop/src/main.js
+        makeWrapper ${pkgs.electron}/bin/electron $out/bin/nerimity \
+          --add-flags $out/lib/node_modules/nerimity-desktop/src/main.js \
+          --add-flags "--user-data-dir=\$HOME/.config/nerimity"
         install -D build/icon-512.png $out/share/icons/hicolor/512x512/apps/nermityicon.png
       '';
      
