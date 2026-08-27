@@ -322,17 +322,11 @@ function setStartup() {
   const autostartEnabled = getAutostart();
   const autostartMinimized = getAutostartMinimized();
   const appPath = app.getPath("exe");
-  const name = basename(appPath);
   app.setLoginItemSettings({
     enabled: autostartEnabled,
     openAtLogin: autostartEnabled,
     openAsHidden: autostartMinimized,
-    appPath,
-    args: [
-      "--processStart",
-      `"${name}"`,
-      "--process-start-args",
-      autostartMinimized ? `"--hidden"` : "",
-    ],
+    path: appPath,
+    args: autostartMinimized ? ["--hidden"] : [],
   });
 }
