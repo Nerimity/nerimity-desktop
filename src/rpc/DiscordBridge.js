@@ -68,8 +68,6 @@ export class DiscordBridge extends EventEmitter {
     this.servers = new Set();
     /** @type {Set<{id: string, socket: net.Socket, closed: boolean}>} */
     this.connections = new Set();
-    /** @type {Map<string, string | null>} */
-    this.processNameCache = new Map();
 
     this.started = false;
     this.reconciling = false;
@@ -108,6 +106,7 @@ export class DiscordBridge extends EventEmitter {
     this.reconciling = true;
     try {
       const foreign = await this.probeForeign();
+      if (!this.started) return;
       if (foreign) {
         if (this.bound) {
           Log("Discord is running, stepping aside");
@@ -144,13 +143,14 @@ export class DiscordBridge extends EventEmitter {
 
   async bindAll() {
     for (const bindPath of this.bindPaths) {
-      if (this.ownedPaths.has(bindPath)) continue;
+      if (!this.started || this.ownedPaths.has(bindPath)) continue;
       if (process.platform !== "win32" && fs.existsSync(bindPath)) {
         // Stale socket from a crashed process blocks listen(); a live one was
         // already caught by probeForeign().
         if (await tryConnect(bindPath)) continue;
         await fs.promises.unlink(bindPath).catch(() => {});
       }
+      if (!this.started) return;
       const server = net.createServer((socket) => this.accept(socket));
       server.on("error", () => {});
 
@@ -166,6 +166,10 @@ export class DiscordBridge extends EventEmitter {
       if (!bound) {
         server.removeAllListeners();
         continue;
+      }
+      if (!this.started) {
+        server.close();
+        return;
       }
       this.ownedPaths.add(bindPath);
       this.servers.add(server);
@@ -237,7 +241,7 @@ export class DiscordBridge extends EventEmitter {
       const payload = conn.buffer.subarray(8, 8 + length);
       conn.buffer = conn.buffer.subarray(8 + length);
       this.onMessage(conn, opcode, payload);
-      if (conn.closed) return;
+      if (conn.closed || conn.socket.destroyed) return;
     }
   }
 
@@ -299,7 +303,9 @@ export class DiscordBridge extends EventEmitter {
 
   onSetActivity(conn, message) {
     const args = message.args ?? {};
-    const pid = String(args.pid ?? conn.id);
+    const pid = /^\d+$/.test(String(args.pid ?? ""))
+      ? String(args.pid)
+      : String(conn.id);
     const key = `${conn.id}:${pid}`;
     const activity = args.activity ?? null;
 
@@ -309,7 +315,7 @@ export class DiscordBridge extends EventEmitter {
       if (this.activities.delete(key)) this.emitUpdate();
       return;
     }
-    if (activity.type === 4) {
+    if (Number(activity.type) === 4) {
       // Custom statuses are client-only; the remote tracker drops them too.
       if (this.activities.delete(key)) this.emitUpdate();
       return;
@@ -411,6 +417,8 @@ function mapActivity(activity, clientId, previousName) {
   } else if (type === 1 && activity.url) {
     link = activity.url;
   }
+  // Clients control this value; only plain web URLs reach the profile.
+  if (link && !/^https?:\/\//i.test(link)) link = undefined;
 
   const explicitName =
     typeof activity.name === "string" && activity.name.trim().length > 0
