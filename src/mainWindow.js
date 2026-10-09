@@ -9,6 +9,8 @@ import {
   setHardwareAccelerationDisabled,
   getCustomTitlebarDisabled,
   setCustomTitlebarDisabled,
+  getDiscordRpcEnabled,
+  setDiscordRpcEnabled,
 } from "./store.js";
 import { setAppIcon, appIcon } from "./icon.js";
 import { getTray } from "./tray.js";
@@ -18,6 +20,9 @@ import {
   startActivityListener,
   startRPCServer,
   stopRPCServer,
+  emitRPC,
+  startDiscordBridge,
+  stopDiscordBridge,
   createAppLoopback,
 } from "./utils.js";
 
@@ -90,6 +95,7 @@ async function openMainWindow() {
   });
 
   mainWindow.webContents.ipc.on("relaunch-app", () => {
+    stopDiscordBridge();
     stopRPCServer();
     app.relaunch();
     app.exit();
@@ -251,6 +257,19 @@ async function openMainWindow() {
 
     startRPCServer(mainWindow, userToken);
   });
+
+  mainWindow.webContents.ipc.handle("get-discord-rpc-enabled", () =>
+    getDiscordRpcEnabled(),
+  );
+  mainWindow.webContents.ipc.on("set-discord-rpc-enabled", (event, value) => {
+    setDiscordRpcEnabled(value);
+    if (value) startDiscordBridge(mainWindow);
+    else stopDiscordBridge();
+  });
+
+  mainWindow.webContents.on("did-finish-load", () => emitRPC(mainWindow));
+
+  if (getDiscordRpcEnabled()) startDiscordBridge(mainWindow);
 
   mainWindow.on("close", function (event) {
     if (!app.isQuitting) {

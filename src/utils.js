@@ -9,6 +9,7 @@ import {
   getLinuxWindows,
 } from "@nerimity/active-window-listener";
 import { WebSocketRPCServer } from "./rpc/WebSocket.js";
+import { DiscordBridge } from "./rpc/DiscordBridge.js";
 import os from "os";
 
 import { getMainWindow } from "./mainWindow.js";
@@ -99,6 +100,17 @@ async function getAllRunningPrograms(storedPrograms = []) {
 let rpcServer;
 
 /**
+ * @type {DiscordBridge | undefined}
+ */
+let discordBridge;
+
+/**
+ * Latest activity list captured from the Discord IPC bridge.
+ * @type {Array<{id: string, data: Record<string, any>}>}
+ */
+let bridgeRPCs = [];
+
+/**
  * @type {ProcessListener | undefined}
  */
 let processListener;
@@ -158,8 +170,8 @@ async function startRPCServer(browserWindow, userToken) {
 
   rpcServer = new WebSocketRPCServer(userToken, isPacked());
   rpcServer.serve();
-  rpcServer.on("RPC_UPDATE", (data) => {
-    handleRPC(data, browserWindow);
+  rpcServer.on("RPC_UPDATE", () => {
+    emitRPC(browserWindow);
   });
 }
 async function stopRPCServer() {
@@ -167,8 +179,44 @@ async function stopRPCServer() {
   rpcServer = undefined;
 }
 
-function handleRPC(data, browserWindow) {
-  browserWindow.webContents.send("rpc-changed", data);
+/**
+ * Sends the merged activity list (extension RPCs + Discord IPC bridge) to the
+ * page. Either side changing re-sends the whole list so neither can clobber
+ * the other. Skipped while the page is still loading; the caller re-emits on
+ * did-finish-load.
+ *
+ * @param {BrowserWindow} browserWindow
+ */
+function emitRPC(browserWindow) {
+  const contents = browserWindow?.webContents;
+  if (!contents || contents.isDestroyed() || contents.isLoading()) return;
+  contents.send("rpc-changed", [...(rpcServer?.RPCs ?? []), ...bridgeRPCs]);
+}
+
+/**
+ * Starts capturing rich presence that apps send to Discord's local IPC
+ * endpoint while Discord itself is closed.
+ *
+ * @param {BrowserWindow} browserWindow
+ */
+function startDiscordBridge(browserWindow) {
+  if (discordBridge) return;
+  const bridge = new DiscordBridge();
+  bridge.on("update", (rpcs) => {
+    bridgeRPCs = rpcs;
+    emitRPC(browserWindow);
+  });
+  discordBridge = bridge;
+  bridge.start().catch(() => {});
+}
+
+function stopDiscordBridge() {
+  if (!discordBridge) return;
+  const bridge = discordBridge;
+  discordBridge = undefined;
+  // stop() emits an empty update, which clears bridge entries from the page.
+  bridge.stop();
+  bridge.removeAllListeners();
 }
 
 
@@ -265,5 +313,8 @@ export {
   startActivityListener,
   startRPCServer,
   stopRPCServer,
+  emitRPC,
+  startDiscordBridge,
+  stopDiscordBridge,
   createAppLoopback,
 };

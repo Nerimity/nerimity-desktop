@@ -8,6 +8,7 @@
   "scripts": {
     "start": "electron .",
     "dev": "nodemon --watch * --exec electron .",
+    "test": "node --test src/rpc/",
     "publish-win": "electron-builder --win -p always",
     "publish-mac": "electron-builder --mac -p always",
     "app:dir": "electron-builder --dir",
