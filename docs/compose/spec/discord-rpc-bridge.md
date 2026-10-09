@@ -1,14 +1,64 @@
 ---
 feature: discord-rpc-bridge
-status: in-progress
+status: delivered
 updated: 2026-10-09
 branch: feat/discord-rpc-bridge
-commits: # filled at delivery
+commits: 5d3e24f..43a09d8
 ---
 
 # Discord Rich Presence bridge (non-Discord users)
 
 ## Report
+
+**What was built** — The desktop app now impersonates Discord's local IPC
+endpoint on Windows, macOS, and Linux. When the Discord desktop app is closed,
+games, media players, and other clients that push rich presence connect to the
+bridge instead; their `SET_ACTIVITY` payloads are mapped into Nerimity's
+activity shape (name from the sending process, action by activity type, cover
+art, timestamps, Spotify links) and merged into the existing `rpc-changed`
+list, next to extension RPCs, with neither source clobbering the other. Every
+10 seconds the bridge probes all `discord-ipc-*` endpoints it does not own and
+steps aside the moment the real Discord answers, re-binding after Discord
+exits. The feature ships off by default behind a new "Discord Rich Presence
+(no Discord needed)" toggle in nerimity-web's Activity Status settings,
+directly under the existing Discord Activity block and only in the Electron
+app; the web change lives on the same branch name in
+`~/nerimity-repos/nerimity-web/.worktrees/discord-rpc-bridge` (spec lives only
+in this repo).
+
+**Verification** — Desktop: `npm test` (node --test, 4/4 including handshake ->
+READY, activity mapping, clear/disconnect removal, foreign pause/resume),
+`node --check` on all six changed files, and a real Electron smoke run: with
+the default flag off no socket was bound; with `discordRpcEnabled:true` the
+app bound `$XDG_RUNTIME_DIR/discord-ipc-0`, answered a fake client's handshake
+with READY and replied to `SET_ACTIVITY` (smoke config and sockets removed
+afterwards). Web: `pnpm build` passed (3.80s). `pnpm exec eslint` and
+`pnpm exec tsc --noEmit` fail at baseline under TypeScript 7 (plugin/config
+errors on unmodified files) — PRE-EXISTING, not caused by this change. The
+`set-discord-rpc-enabled` IPC handler was verified by code trace, not runtime
+(the page was not running during smoke). An independent review found no
+critical or major issues; its minor findings (stop-during-bind race, post-
+destroy frame processing, link scheme allowlist, pid parsing, dead field) were
+fixed in `43a09d8` and re-tested.
+
+**Journey log** —
+1. The Discord Activity feature turned out to live in nerimity-web
+   (`useDiscordActivityTracker` + remote tracker), not this repo; three local
+   web checkouts existed and only `~/nerimity-repos/nerimity-web` was at
+   `origin/main`, so that one got the worktree.
+2. `npm ci` on the web repo fails with ERESOLVE (TS 7 peer conflict);
+   `pnpm install --frozen-lockfile` is the working path there.
+3. Desktop `npm rebuild` dies building `node-window-manager` because ccache
+   points at a missing `g++-11`; `CC=gcc CXX=g++ npm rebuild <pkgs>` fixes it,
+   and the electron binary needs a manual `node node_modules/electron/install.js`
+   because the package.json `allowScripts` allowlist skips electron's postinstall.
+4. `pkill -f` matching its own command line kills the shell; bracketed patterns
+   (`dist/electr[o]n`) avoid self-match. A killed Electron leaves stale unix
+   sockets, which the bridge's own stale-socket path then handles.
+5. Reviewer verified the settings toggle double-wiring (block onClick +
+   Checkbox onChange) empirically in headless Chromium — safe only because the
+   native input covers the hit area — and traced `rpc-changed` end to end
+   through the eager `connectionEvents` import graph.
 
 ## [S1] Problem
 
@@ -45,10 +95,11 @@ Pure Node, no `electron` import (so `node --test` can run it directly). Exports
 Lifecycle:
 
 - `start()` resolves candidate IPC endpoints, probes for a foreign Discord
-  server first, and binds only when no foreign server answers. Emits `"update"`
-  with the current activity array.
-- `stop()` closes all listeners and sockets, drops every captured activity, and
-  emits `"update"` with `[]`.
+  server first, and binds only when no foreign server answers. The current
+  activity list is readable via `getRPCs()` and emitted as `"update"` on every
+  change.
+- `stop()` closes all listeners and sockets and drops every captured activity,
+  emitting `"update"` with `[]` when it had any.
 - While paused or running, a 10 s probe re-checks foreign servers: one answer
   anywhere we do not own pauses the bridge (Discord came back); all clear
   resumes it (Discord exited).
@@ -91,13 +142,14 @@ as `WebSocketRPCServer.sanitizedData`: name 30, action 20, imgSrc/title/subtitle
 - `action`: type 0 Playing, 1 Streaming, 2 Listening to, 3 Watching,
   5 Competing in; type 4 (Custom) entries are dropped, matching the remote
   tracker
-- `imgSrc`: `assets.large_image` else `small_image`; `https://...` kept,
+- `imgSrc`: `assets.large_image` else `small_image`; `http(s)://` URLs kept,
   `spotify:<hex>` -> `https://i.scdn.co/image/<hex>`, 32-char hex app asset
   hashes -> `https://cdn.discordapp.com/app-assets/<client_id>/<hash>.png`,
   anything else (`mp:external/...`, keys we cannot resolve) dropped
 - `title`: `details`, `subtitle`: `state`
 - `link`: `sync_id` -> `https://open.spotify.com/track/<sync_id>`, else first
-  button URL, else `url` on Streaming activities
+  button URL, else `url` on Streaming activities; only `http(s)://` URLs are
+  kept, anything else dropped
 - `startedAt` / `endsAt`: `timestamps.start` / `timestamps.end` in ms
 
 ### Wiring (desktop)
@@ -163,6 +215,6 @@ as `WebSocketRPCServer.sanitizedData`: name 30, action 20, imgSrc/title/subtitle
 
 ## Tasks
 
-- [ ] T1: DiscordBridge module with endpoint binding, foreign-Discord backoff, protocol handling, activity mapping — acceptance: `node --test src/rpc` passes, covering handshake -> READY, SET_ACTIVITY -> mapped entry, null activity / disconnect -> removal, foreign-server pause and resume (covers: S2; depends: —)
-- [ ] T2: Desktop wiring: store flag, IPC handlers, preloader API, merged `rpc-changed` emit, start/stop lifecycle — acceptance: `node --check` passes on every changed file, flag defaults to false, toggling on starts the bridge and off stops and clears it, `rpc-changed` payload contains extension + bridge entries merged (covers: S2; depends: T1)
-- [ ] T3: Web toggle: WindowAPI interface, settings block next to Discord Activity with electron gate, en-gb strings — acceptance: `npm run build` succeeds in the web worktree and the block reads/writes `getDiscordRpcEnabled`/`setDiscordRpcEnabled` (covers: S2; depends: T1 wiring contract T2)
+- [x] T1: DiscordBridge module with endpoint binding, foreign-Discord backoff, protocol handling, activity mapping — acceptance: `node --test src/rpc` passes, covering handshake -> READY, SET_ACTIVITY -> mapped entry, null activity / disconnect -> removal, foreign-server pause and resume (covers: S2; depends: —)
+- [x] T2: Desktop wiring: store flag, IPC handlers, preloader API, merged `rpc-changed` emit, start/stop lifecycle — acceptance: `node --check` passes on every changed file, flag defaults to false, toggling on starts the bridge and off stops and clears it, `rpc-changed` payload contains extension + bridge entries merged (covers: S2; depends: T1)
+- [x] T3: Web toggle: WindowAPI interface, settings block next to Discord Activity with electron gate, en-gb strings — acceptance: `npm run build` succeeds in the web worktree and the block reads/writes `getDiscordRpcEnabled`/`setDiscordRpcEnabled` (covers: S2; depends: T1 wiring contract T2)
