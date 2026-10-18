@@ -199,7 +199,14 @@ async function openMainWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    try {
+      const parsedUrl = new URL(details.url);
+      if (parsedUrl.protocol === "https:" || parsedUrl.protocol === "http:") {
+        shell.openExternal(details.url);
+      }
+    } catch (err) {
+      //  invalid url
+    }
     return { action: "deny" };
   });
 
