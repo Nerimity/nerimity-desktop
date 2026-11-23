@@ -32,3 +32,11 @@ export function getCustomTitlebarDisabled() {
 export function setCustomTitlebarDisabled(value) {
   return store.set("customTitlebarDisabled", value);
 }
+
+export function getDiscordRpcEnabled() {
+  return store.get("discordRpcEnabled", false);
+}
+
+export function setDiscordRpcEnabled(value) {
+  return store.set("discordRpcEnabled", value);
+}

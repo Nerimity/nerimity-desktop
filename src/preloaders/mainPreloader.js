@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld("WindowAPI", {
   setAutostartMinimized: (value) =>
     ipcRenderer.send("set-autostart-minimized", value),
 
+  getDiscordRpcEnabled: () => ipcRenderer.invoke("get-discord-rpc-enabled"),
+  setDiscordRpcEnabled: (value) =>
+    ipcRenderer.send("set-discord-rpc-enabled", value),
+
   setNotification: (value, count) =>
     ipcRenderer.send("set-notification", value, count),
 
