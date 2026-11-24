@@ -73,22 +73,6 @@ contextBridge.exposeInMainWorld("WindowAPI", {
   appLoopbackData: (callback) =>
     ipcRenderer.on("app-loopback-data", (event, val) => callback(val)),
 
-  // Text-to-speech for call messages (fully embedded, no Python required).
-  getTtsSettings: () => ipcRenderer.invoke("get-tts-settings"),
-  setTtsVoice: (voice) => ipcRenderer.send("set-tts-voice", voice),
-  setTtsLocale: (locale) => ipcRenderer.send("set-tts-locale", locale),
-  ttsSpeak: (payload) => ipcRenderer.invoke("tts-speak", payload),
-
-  getScreenShareSettings: () => ipcRenderer.invoke("get-screen-share-settings"),
-  setNativeScreenPicker: (value) =>
-    ipcRenderer.send("set-native-screen-picker", value),
-  setScreenShareAudioMode: (value) =>
-    ipcRenderer.send("set-screen-share-audio-mode", value),
-
-  listAudioApps: () => ipcRenderer.invoke("list-audio-apps"),
-  startAudioAppCapture: (apps) =>
-    ipcRenderer.invoke("start-audio-app-capture", apps),
-  stopAudioAppCapture: () => ipcRenderer.invoke("stop-audio-app-capture"),
 });
 
 // Opt-in companion features used by the injected enhancements (TTS reader,
