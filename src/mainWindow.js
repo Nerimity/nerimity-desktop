@@ -120,6 +120,58 @@ function listAudioFiles(folder) {
   }
 }
 
+let pwIsolateTimer = null;
+
+function runCommand(cmd, args = [], timeout = 15000) {
+  const result = runOnHost([cmd, ...args], { timeout });
+  return {
+    ok: result.status === 0,
+    out: (result.stdout || "").trim(),
+    err: (result.stderr || "").trim(),
+    status: result.status,
+  };
+}
+
+function getNerimityOutputIds() {
+  const dump = runCommand("pw-dump", []);
+  if (!dump.ok) return [];
+  try {
+    return (JSON.parse(dump.out || "[]") || [])
+      .filter((obj) => {
+        const props = obj?.info?.props || {};
+        return (
+          props["media.class"] === "Stream/Output/Audio" &&
+          /nerimity|electron/i.test(
+            `${props["application.name"] || ""} ${props["node.name"] || ""}`,
+          )
+        );
+      })
+      .map((obj) => obj.id);
+  } catch (_) {
+    return [];
+  }
+}
+
+function ensureIsolatedSink() {
+  const sinks = runCommand("pw-dump", []);
+  if (!sinks.ok || !/nerimity_isolated/.test(sinks.out)) {
+    runCommand("pactl", [
+      "load-module",
+      "module-null-sink",
+      "sink_name=nerimity_isolated",
+      "sink_properties=device.description=NerimityIsolated",
+    ]);
+  }
+}
+
+function moveNerimityOutputs(target) {
+  const moved = getNerimityOutputIds().map((id) => ({
+    id,
+    ...runCommand("wpctl", ["move", String(id), String(target)]),
+  }));
+  return { moved, count: moved.length };
+}
+
 function openSoundux(folder) {
   try {
     const config = {
@@ -222,6 +274,11 @@ async function openMainWindow() {
   } catch (error) {
     console.error("Companion UI files are missing:", error);
   }
+  mainWindow.on("closed", () => {
+    if (pwIsolateTimer) clearInterval(pwIsolateTimer);
+    pwIsolateTimer = null;
+  });
+
   mainWindow.webContents.on("dom-ready", () => {
     if (companionCss) {
       mainWindow.webContents.insertCSS(companionCss).catch((error) =>
@@ -371,6 +428,49 @@ async function openMainWindow() {
   mainWindow.webContents.ipc.handle("extra-open-soundux", (event, folder) =>
     openSoundux(String(folder || "")),
   );
+  mainWindow.webContents.ipc.handle("extra-open-qpwgraph", () => {
+    try {
+      const command = hostArgs(["qpwgraph"]);
+      const child = spawn(command[0], command.slice(1), {
+        detached: true,
+        stdio: "ignore",
+      });
+      child.unref();
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: String(error?.message || error) };
+    }
+  });
+  mainWindow.webContents.ipc.handle(
+    "extra-pipewire-isolate",
+    (event, enable) => {
+      try {
+        if (enable) {
+          ensureIsolatedSink();
+          const result = moveNerimityOutputs("nerimity_isolated");
+          if (pwIsolateTimer) clearInterval(pwIsolateTimer);
+          pwIsolateTimer = setInterval(() => {
+            try {
+              ensureIsolatedSink();
+              moveNerimityOutputs("nerimity_isolated");
+            } catch (_) {}
+          }, 3000);
+          return { ok: true, enabled: true, ...result };
+        }
+        if (pwIsolateTimer) {
+          clearInterval(pwIsolateTimer);
+          pwIsolateTimer = null;
+        }
+        return {
+          ok: true,
+          enabled: false,
+          ...moveNerimityOutputs("@DEFAULT_AUDIO_SINK@"),
+        };
+      } catch (error) {
+        return { ok: false, error: String(error?.message || error) };
+      }
+    },
+  );
 
   mainWindow.webContents.ipc.handle("get-tts-settings", () => ({
     voice: getTtsVoice(),
@@ -519,6 +619,24 @@ async function openMainWindow() {
     getTray()?.setToolTip(
       value ? `Nerimity — ${count || ""} notifications` : "Nerimity",
     );
+  });
+
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      const internalHosts = [
+        "nerimity.com",
+        "www.nerimity.com",
+        "local.nerimity.com",
+        "localhost",
+      ];
+      if (!internalHosts.includes(host)) {
+        event.preventDefault();
+        shell.openExternal(url);
+      }
+    } catch (_) {
+      // Invalid URL: let Electron handle it.
+    }
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

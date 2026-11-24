@@ -103,6 +103,9 @@ contextBridge.exposeInMainWorld("NeriExtras", {
   listAudioFiles: (folder) => ipcRenderer.invoke("extra-list-audio-files", folder),
   readAudioFile: (filePath) => ipcRenderer.invoke("extra-read-audio-file", filePath),
   openSoundux: (folder) => ipcRenderer.invoke("extra-open-soundux", folder),
+  openQpwgraph: () => ipcRenderer.invoke("extra-open-qpwgraph"),
+  pipewireIsolate: (enabled) =>
+    ipcRenderer.invoke("extra-pipewire-isolate", enabled),
 
   ttsSpeak: (payload) => ipcRenderer.invoke("tts-speak", payload),
 
