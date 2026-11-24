@@ -1,18 +1,70 @@
 import { app, BrowserWindow, session } from "electron";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { homedir } from "os";
+import { join } from "path";
 import { openMainWindow, getMainWindow } from "./mainWindow.js";
-import { setTray, getTray } from "./tray.js";
+import { setTray, getTray, toggleWindow } from "./tray.js";
 import { isPacked } from "./utils.js";
 import { openUpdaterWindow } from "./updaterWindow.js";
 
-const singleInstanceLock = app.requestSingleInstanceLock();
+// AppImage and Flatpak builds use different userData directories, so the
+// Electron lock alone does not prevent two instances when both are installed.
+const instanceLockFile = join(
+  process.env.FLATPAK_ID ? join("/home", process.env.USER || "user") : homedir(),
+  ".config",
+  "nerimity-instance.lock",
+);
+
+function acquireSharedLock() {
+  try {
+    if (existsSync(instanceLockFile)) {
+      const pid = parseInt(readFileSync(instanceLockFile, "utf8").trim(), 10);
+      if (pid && pid !== process.pid) {
+        process.kill(pid, 0);
+        return false;
+      }
+    }
+  } catch (_) {
+    // Stale lock file: take ownership.
+  }
+  try {
+    writeFileSync(instanceLockFile, String(process.pid));
+  } catch (error) {
+    console.error("Could not write the instance lock:", error);
+  }
+  return true;
+}
+
+function releaseSharedLock() {
+  try {
+    if (parseInt(readFileSync(instanceLockFile, "utf8").trim(), 10) === process.pid) {
+      unlinkSync(instanceLockFile);
+    }
+  } catch (_) {}
+}
+
+const singleInstanceLock =
+  app.requestSingleInstanceLock() && acquireSharedLock();
 
 app.setAppUserModelId("nerimity.com");
 
-app.on("second-instance", (event, argv, cwd) => {
-  if (!getMainWindow()) return;
-  getMainWindow().show();
-  if (getMainWindow().isMinimized()) getMainWindow().restore();
-  getMainWindow().focus();
+const isWayland =
+  Boolean(process.env.WAYLAND_DISPLAY) ||
+  process.env.XDG_SESSION_TYPE === "wayland";
+if (isWayland) app.commandLine.appendSwitch("ozone-platform", "wayland");
+else if (process.env.DISPLAY) app.commandLine.appendSwitch("ozone-platform", "x11");
+app.commandLine.appendSwitch("disable-blink-features", "AutomationControlled");
+app.commandLine.appendSwitch("disk-cache-size", String(512 * 1024 * 1024));
+
+app.on("second-instance", () => {
+  const mainWindow = getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    openMainWindow();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 });
 
 function onReady() {
@@ -20,6 +72,48 @@ function onReady() {
     app.quit();
     return;
   }
+  // The site uses the Electron token for bot detection on some flows.
+  session.defaultSession.setUserAgent(
+    session.defaultSession.getUserAgent().replace(/\sElectron\/[\d.]+/, ""),
+  );
+
+  // Short cache for metadata only; never cache message content.
+  const metadataFilter = {
+    urls: [
+      "*://nerimity.com/api/*",
+      "*://*.nerimity.com/api/*",
+      "*://cdn.nerimity.com/*",
+    ],
+  };
+  session.defaultSession.webRequest.onHeadersReceived(
+    metadataFilter,
+    (details, callback) => {
+      const headers = details.responseHeaders || {};
+      const url = details.url || "";
+      const isMetadata = /\/channels(\/|\?|$)|\/servers(\/|\?|$)|\/users(\/|\?|$)|\/inbox(\/|\?|$)|\/friends(\/|\?|$)/i.test(
+        url,
+      );
+      const isMessageContent = /\/messages(\/|\?|$)|\/posts(\/|\?|$)|\/typing(\/|\?|$)|\/read(\/|\?|$)/i.test(
+        url,
+      );
+      if (
+        details.method === "GET" &&
+        !isMessageContent &&
+        (isMetadata || url.includes("cdn.nerimity.com"))
+      ) {
+        for (const key of Object.keys(headers)) {
+          if (/^cache-control$/i.test(key) || /^pragma$/i.test(key) || /^expires$/i.test(key)) {
+            delete headers[key];
+          }
+        }
+        headers["Cache-Control"] = [
+          "private, max-age=120, stale-while-revalidate=600",
+        ];
+      }
+      callback({ responseHeaders: headers });
+    },
+  );
+
   // Skip tray on macOS (uses dock instead)
   if (process.platform !== "darwin") {
     setTray();
@@ -71,20 +165,18 @@ function onReady() {
 app.whenReady().then(onReady);
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    getTray()?.destroy();
+  // Keep the app alive in the tray; use the tray's Quit item to exit.
+  if (process.platform !== "darwin" && !getTray()) {
     app.quit();
   }
 });
 
-// Handle Cmd+Q and proper quit on macOS
 app.on("before-quit", () => {
   app.isQuitting = true;
+  releaseSharedLock();
 });
 
-// Reopen window when clicking Dock icon on macOS
 app.on("activate", () => {
-  if (process.platform === "darwin" && getMainWindow()) {
-    getMainWindow().show();
-  }
+  if (getMainWindow()) toggleWindow();
+  else openMainWindow();
 });

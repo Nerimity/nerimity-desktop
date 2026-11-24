@@ -1,0 +1,224 @@
+/* Tema inspirado no nerimity-web-vanilla (preto profundo + cinzas frios). */
+:root {
+  --background-color: #000000 !important;
+  --pane-color: #050505 !important;
+  --side-pane-color: #0a0a0a !important;
+  --header-background-color: rgba(0, 0, 0, 0.55) !important;
+  --header-background-color-blur-disabled: #000000 !important;
+  --tooltip-background-color: #0a0a0a !important;
+  --chat-input-background-color: #000000 !important;
+  --chat-input-background-color-blur-disabled: #000000 !important;
+  --chat-markup-bar-background-color: #000000 !important;
+  --chat-markup-bar-background-color-blur-disabled: #000000 !important;
+  --message-hover-background-color: rgba(255, 255, 255, 0.07) !important;
+  --message-floating-options-background-color: #0a0a0a !important;
+  --primary-color: #3e88ff !important;
+  --primary-color-dark: #0b1a33 !important;
+  --success-color: #4bba5b !important;
+  --success-color-dark: #16251a !important;
+  --alert-color: #eb5c5c !important;
+  --alert-color-dark: #321919 !important;
+  --warn-color: #f1750f !important;
+  --text-color: #ffffff !important;
+  --content-color: rgba(255, 255, 255, 0.82) !important;
+  --side-pane-text-color: #ffffff !important;
+  --typing-indicator-color: #ffffff !important;
+  --typing-indicator-secondary-color: #8a8a8a !important;
+  --markup-mention-background-color: rgba(62, 136, 255, 0.2) !important;
+  --drawer-item-background-color: rgba(255, 255, 255, 0.06) !important;
+  --drawer-item-hover-background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+body {
+  font-family: Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cantos arredondados e separadores sutis, como no projeto vanilla. */
+[class*="button"] {
+  border-radius: 10px !important;
+}
+[class*="chatInput"],
+[class*="messageInput"] {
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+[class*="voiceActions"] {
+  gap: 5px !important;
+}
+[class*="headerVoiceParticipants"] {
+  background-color: rgba(0, 0, 0, 0.72) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ----------------- Buttons injected into the call bar ----------------- */
+#neri-extras-buttons {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+#neri-extras-buttons button[data-neri-extra] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#neri-extras-buttons button[data-neri-extra].active {
+  background: rgba(235, 92, 92, 0.22) !important;
+  border-color: var(--alert-color) !important;
+}
+#neri-extras-buttons button[data-neri-extra].active span.icon {
+  animation: neri-pulse 1.4s ease-in-out infinite;
+}
+#neri-extras-buttons span.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+#neri-extras-buttons span.icon svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+@keyframes neri-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ------------------------------- Toasts -------------------------------- */
+#neri-extras-toasts {
+  position: fixed;
+  z-index: 2147483001;
+  right: 18px;
+  bottom: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 340px;
+}
+.neri-extras-toast {
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(10, 10, 10, 0.94);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}
+.neri-extras-toast.error {
+  border-color: var(--alert-color);
+}
+
+/* ------------------------ Popover/modal de extras ---------------------- */
+.neri-extras-modal {
+  position: fixed;
+  z-index: 2147483002;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
+}
+.neri-extras-popover {
+  width: min(360px, calc(100vw - 24px));
+  max-height: min(65vh, 480px);
+}
+.neri-extras-card {
+  width: 100%;
+  max-height: min(65vh, 480px);
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: #0a0a0a;
+  color: #fff;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.7);
+}
+.neri-extras-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.neri-extras-head .material-symbols-rounded {
+  vertical-align: -4px;
+  margin-right: 6px;
+  color: var(--primary-color);
+}
+.neri-extras-close {
+  border: 0;
+  background: transparent;
+  color: #bbb;
+  font-size: 24px;
+  cursor: pointer;
+}
+.neri-extras-card p {
+  margin: 0 0 14px;
+  color: #aaa;
+  font-size: 13px;
+}
+.neri-extras-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.neri-extras-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: #000;
+  color: #fff;
+  outline: none;
+}
+.neri-extras-row button,
+.neri-extras-sound {
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  cursor: pointer;
+}
+.neri-extras-row button:hover,
+.neri-extras-sound:hover {
+  background: rgba(62, 136, 255, 0.22);
+}
+.neri-extras-row button.primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.neri-extras-row button.scan-btn {
+  background: rgba(62, 136, 255, 0.18);
+  border-color: rgba(62, 136, 255, 0.65);
+  color: #cfe4ff;
+  font-weight: 600;
+}
+.neri-extras-row button.scan-btn:hover {
+  background: rgba(62, 136, 255, 0.32);
+}
+.neri-extras-sounds {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+.neri-extras-sound {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  text-align: left;
+}
+.neri-extras-sound .material-symbols-rounded {
+  flex: none;
+  color: var(--primary-color);
+}
+.neri-extras-sound span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

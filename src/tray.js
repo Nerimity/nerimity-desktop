@@ -1,4 +1,4 @@
-import { Tray, Menu, app } from "electron";
+import { Tray, Menu, app, shell } from "electron";
 import { appIcon } from "./icon.js";
 
 /**
@@ -6,21 +6,52 @@ import { appIcon } from "./icon.js";
  */
 let tray = null;
 
+async function getMainWindow() {
+  const { getMainWindow: getWindow } = await import("./mainWindow.js");
+  return getWindow();
+}
+
+async function toggleWindow() {
+  const mainWindow = await getMainWindow();
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+
+  if (mainWindow.isVisible() && !mainWindow.isMinimized()) {
+    mainWindow.hide();
+    return;
+  }
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
+}
+
 const contextMenu = async () => {
-  const { getMainWindow } = await import("./mainWindow.js");
   return Menu.buildFromTemplate([
     {
-      label: "Show App",
-      click: function () {
-        getMainWindow()?.show();
+      label: "Show / Hide",
+      click: () => toggleWindow(),
+    },
+    { type: "separator" },
+    {
+      label: "Reload",
+      click: async () => {
+        const mainWindow = await getMainWindow();
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.reload();
+        mainWindow.show();
+        mainWindow.focus();
       },
     },
     {
+      label: "Open in browser",
+      click: () => shell.openExternal("https://nerimity.com"),
+    },
+    { type: "separator" },
+    {
       label: "Quit",
-      click: function () {
+      click: async () => {
         app.isQuitting = true;
-        getMainWindow()?.close();
-        getMainWindow()?.destroy();
+        const mainWindow = await getMainWindow();
+        mainWindow?.destroy();
         app.quit();
       },
     },
@@ -28,15 +59,12 @@ const contextMenu = async () => {
 };
 
 async function setTray() {
-  const { getMainWindow } = await import("./mainWindow.js");
   tray = new Tray(appIcon);
   tray.setToolTip("Nerimity");
   tray.setContextMenu(await contextMenu());
   tray.setIgnoreDoubleClickEvents(true);
-  tray.on("click", () => {
-    getMainWindow()?.show();
-  });
+  tray.on("click", () => toggleWindow());
   return tray;
 }
 export const getTray = () => tray;
-export { setTray };
+export { setTray, toggleWindow };

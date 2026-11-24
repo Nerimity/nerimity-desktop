@@ -4,6 +4,9 @@ const store = new Store();
 export function get(value) {
   return store.get(value);
 }
+export function set(value, data) {
+  return store.set(value, data);
+}
 export function setAutostart(value) {
   return store.set("autostart", value);
 }
@@ -31,4 +34,30 @@ export function getCustomTitlebarDisabled() {
 
 export function setCustomTitlebarDisabled(value) {
   return store.set("customTitlebarDisabled", value);
+}
+
+export function getTtsVoice() {
+  return store.get("ttsVoice", "");
+}
+export function setTtsVoice(value) {
+  return store.set("ttsVoice", value);
+}
+export function getTtsLocale() {
+  return store.get("ttsLocale", "auto");
+}
+export function setTtsLocale(value) {
+  return store.set("ttsLocale", value);
+}
+
+export function getNativeScreenPicker() {
+  return store.get("nativeScreenPicker", true);
+}
+export function setNativeScreenPicker(value) {
+  return store.set("nativeScreenPicker", value);
+}
+export function getScreenShareAudioMode() {
+  return store.get("screenShareAudioMode", "full");
+}
+export function setScreenShareAudioMode(value) {
+  return store.set("screenShareAudioMode", value);
 }

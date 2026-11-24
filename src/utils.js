@@ -1,5 +1,8 @@
-import { basename, resolve } from "path";
+import { basename, join, resolve } from "path";
+import { existsSync } from "fs";
+import { pathToFileURL } from "url";
 import { execPath, platform } from "process";
+import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 
 import {
@@ -259,6 +262,187 @@ const createAppLoopback = () => {
   };
 };
 
+/** @type {any | null | undefined} */
+let venmicPatchBay;
+
+/**
+ * Load venmic lazily so the native addon is only required on Linux when the
+ * user selects application audio for screen sharing.
+ */
+async function getVenmic() {
+  if (venmicPatchBay !== undefined) return venmicPatchBay || null;
+  venmicPatchBay = null;
+  try {
+    // Native prebuilds are unpacked from asar by electron-builder.
+    const appRoot = resolve(import.meta.dirname, "..").replace(
+      "app.asar",
+      "app.asar.unpacked",
+    );
+    const prebuild = join(
+      appRoot,
+      "node_modules",
+      "@vencord",
+      "venmic",
+      "prebuilds",
+      `venmic-addon-linux-${platform}`,
+      "node-napi-v7.node",
+    );
+    const mod = existsSync(prebuild)
+      ? await import(pathToFileURL(prebuild).href)
+      : await import("@vencord/venmic");
+    const PatchBay = mod.PatchBay || mod.default?.PatchBay;
+    if (PatchBay) venmicPatchBay = new PatchBay();
+  } catch (error) {
+    console.error("venmic could not be loaded:", error);
+  }
+  return venmicPatchBay || null;
+}
+
+/** List PipeWire output streams that can be shared as application audio. */
+async function listPipeWireAudioApps() {
+  try {
+    const patchBay = await getVenmic();
+    if (!patchBay) return { ok: false, error: "venmic unavailable", targets: [] };
+    const targets = (
+      patchBay.list([
+        "application.name",
+        "node.name",
+        "media.class",
+        "application.process.id",
+      ]) || []
+    )
+      .filter(
+        (target) =>
+          String(target["application.process.id"] || "") !== String(process.pid),
+      )
+      .filter((target) => !/nerimity/i.test(String(target["application.name"] || "")));
+    return { ok: true, targets };
+  } catch (error) {
+    return {
+      ok: false,
+      error: String(error?.message || error),
+      targets: [],
+    };
+  }
+}
+
+/** Link selected applications into the shared screen-share audio stream. */
+async function startPipeWireAudioCapture(include = []) {
+  try {
+    const patchBay = await getVenmic();
+    if (!patchBay) return { ok: false, error: "venmic unavailable" };
+    patchBay.link({
+      include: Array.isArray(include) ? include : [],
+      exclude: [
+        { "application.process.id": process.pid },
+        { "media.class": "Stream/Input/Audio" },
+      ],
+      ignore_devices: true,
+      only_speakers: true,
+      only_default_speakers: false,
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+async function stopPipeWireAudioCapture() {
+  try {
+    (await getVenmic())?.unlink();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
+/**
+ * Run a command on the host when the app is sandboxed by Flatpak.
+ * @param {string[]} args
+ * @returns {string[]}
+ */
+function hostArgs(args) {
+  return process.env.FLATPAK_ID ? ["flatpak-spawn", "--host", ...args] : args;
+}
+
+/** Run a short-lived command and capture its output. */
+function runOnHost(args, options = {}) {
+  const command = hostArgs(args);
+  return spawnSync(command[0], command.slice(1), {
+    encoding: "utf8",
+    timeout: 15000,
+    ...options,
+  });
+}
+
+/**
+ * Play an MP3 buffer without writing it to a temporary file. The bytes are
+ * piped through stdin, which also works when /tmp is private to the Flatpak
+ * sandbox. Each available player is tried in order.
+ *
+ * @param {Buffer} buffer
+ */
+async function playAudioBuffer(buffer) {
+  const candidates = [
+    ["pw-play", ["-"]],
+    ["ffplay", ["-nodisp", "-autoexit", "-loglevel", "error", "-"]],
+    ["mpv", ["--no-video", "--really-quiet", "-"]],
+    ["paplay", []],
+    ["aplay", []],
+  ];
+  let lastError = "no audio player available";
+  for (const [cmd, args] of candidates) {
+    const result = await new Promise((resolveResult) => {
+      const command = hostArgs([cmd, ...args]);
+      let child;
+      try {
+        child = spawn(command[0], command.slice(1), {
+          stdio: ["pipe", "ignore", "pipe"],
+        });
+      } catch (error) {
+        resolveResult({ ok: false, error: String(error.message || error) });
+        return;
+      }
+      let stderr = "";
+      child.stderr?.on("data", (data) => {
+        stderr += data.toString();
+      });
+      const timer = setTimeout(() => {
+        try {
+          child.kill("SIGKILL");
+        } catch (_) {}
+        resolveResult({ ok: false, error: `${cmd}: timeout` });
+      }, 60000);
+      child.on("error", (error) => {
+        clearTimeout(timer);
+        resolveResult({ ok: false, error: String(error.message || error) });
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        resolveResult(
+          code === 0
+            ? { ok: true, player: cmd }
+            : {
+                ok: false,
+                error: (stderr || `${cmd} exited with ${code}`).slice(0, 200),
+              },
+        );
+      });
+      // Avoid EPIPE when the player exits before consuming all input.
+      child.stdin?.on("error", () => {});
+      try {
+        child.stdin?.end(buffer);
+      } catch (error) {
+        clearTimeout(timer);
+        resolveResult({ ok: false, error: String(error.message || error) });
+      }
+    });
+    if (result.ok) return result;
+    lastError = result.error;
+  }
+  return { ok: false, error: lastError };
+}
+
 export {
   isPacked,
   getAllRunningPrograms,
@@ -266,4 +450,10 @@ export {
   startRPCServer,
   stopRPCServer,
   createAppLoopback,
+  hostArgs,
+  runOnHost,
+  playAudioBuffer,
+  listPipeWireAudioApps,
+  startPipeWireAudioCapture,
+  stopPipeWireAudioCapture,
 };

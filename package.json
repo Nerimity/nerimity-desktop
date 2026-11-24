@@ -27,6 +27,9 @@
     "productName": "Nerimity",
     "npmRebuild": true,
     "buildDependenciesFromSource": true,
+    "asarUnpack": [
+      "node_modules/@vencord/venmic/prebuilds/**/*"
+    ],
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
@@ -47,10 +50,31 @@
     "linux": {
       "target": [
         "deb",
-        "AppImage"
+        "AppImage",
+        "flatpak"
       ],
       "category": "Network",
       "icon": "build/icon.png"
+    },
+    "flatpak": {
+      "runtime": "org.freedesktop.Platform",
+      "runtimeVersion": "26.08",
+      "sdk": "org.freedesktop.Sdk",
+      "base": "org.electronjs.Electron2.BaseApp",
+      "baseVersion": "26.08",
+      "useWaylandFlags": false,
+      "finishArgs": [
+        "--socket=wayland",
+        "--socket=x11",
+        "--share=ipc",
+        "--device=dri",
+        "--socket=pulseaudio",
+        "--filesystem=home",
+        "--share=network",
+        "--talk-name=org.freedesktop.Notifications",
+        "--talk-name=org.kde.StatusNotifierWatcher",
+        "--talk-name=org.freedesktop.Flatpak"
+      ]
     },
     "publish": {
       "provider": "github",
@@ -72,8 +96,16 @@
       "build/windows_overlay_notification_6.png",
       "build/windows_overlay_notification_7.png",
       "build/windows_overlay_notification_8.png",
-      "build/windows_overlay_notification_9.png"
+      "build/windows_overlay_notification_9.png",
+      "injected/**/*",
+      "src/tts.js",
+      "node_modules/@vencord/venmic/lib/**/*",
+      "node_modules/@vencord/venmic/prebuilds/**/*",
+      "node_modules/@vencord/venmic/package.json"
     ]
+  },
+  "optionalDependencies": {
+    "@vencord/venmic": "^7.2.5"
   },
   "dependencies": {
     "@nerimity/active-window-listener": "^2.0.6",
@@ -86,6 +118,7 @@
     "ws": "^8.21.3"
   },
   "allowScripts": {
+    "@vencord/venmic@7.2.5": true,
     "electron-winstaller@5.4.0": true,
     "extract-file-icon@0.3.2": true,
     "get-windows@9.3.0": true,

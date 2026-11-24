@@ -1,5 +1,14 @@
-import { BrowserWindow, app, shell, desktopCapturer, ipcMain } from "electron";
-import { join, basename } from "path";
+import {
+  BrowserWindow,
+  app,
+  shell,
+  desktopCapturer,
+  ipcMain,
+  dialog,
+} from "electron";
+import { readFileSync, readdirSync } from "fs";
+import { spawn } from "child_process";
+import { extname, join, basename } from "path";
 import {
   getAutostart,
   setAutostart,
@@ -9,6 +18,16 @@ import {
   setHardwareAccelerationDisabled,
   getCustomTitlebarDisabled,
   setCustomTitlebarDisabled,
+  get,
+  set,
+  getTtsVoice,
+  setTtsVoice,
+  getTtsLocale,
+  setTtsLocale,
+  getNativeScreenPicker,
+  setNativeScreenPicker,
+  getScreenShareAudioMode,
+  setScreenShareAudioMode,
 } from "./store.js";
 import { setAppIcon, appIcon } from "./icon.js";
 import { getTray } from "./tray.js";
@@ -19,7 +38,18 @@ import {
   startRPCServer,
   stopRPCServer,
   createAppLoopback,
+  hostArgs,
+  runOnHost,
+  playAudioBuffer,
+  listPipeWireAudioApps,
+  startPipeWireAudioCapture,
+  stopPipeWireAudioCapture,
 } from "./utils.js";
+import {
+  synthesizeEdgeTts,
+  resolveVoiceForLocale,
+  normalizeLocale,
+} from "./tts.js";
 
 import { uIOhook, UiohookKey } from "uiohook-napi";
 
@@ -57,6 +87,110 @@ let desktopCaptureSources = null;
  */
 let desktopCaptureSource = null;
 
+const isWayland =
+  Boolean(process.env.WAYLAND_DISPLAY) ||
+  process.env.XDG_SESSION_TYPE === "wayland";
+let displayMediaRequestInProgress = false;
+
+const AUDIO_EXTENSIONS = /\.(mp3|wav|flac|ogg|m4a|opus|aac)$/i;
+
+function audioMime(filePath) {
+  return (
+    {
+      ".mp3": "audio/mpeg",
+      ".wav": "audio/wav",
+      ".flac": "audio/flac",
+      ".ogg": "audio/ogg",
+      ".m4a": "audio/mp4",
+      ".opus": "audio/ogg",
+      ".aac": "audio/aac",
+    }[extname(filePath).toLowerCase()] || "audio/mpeg"
+  );
+}
+
+function listAudioFiles(folder) {
+  try {
+    return readdirSync(folder, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && AUDIO_EXTENSIONS.test(entry.name))
+      .map((entry) => ({ name: entry.name, path: join(folder, entry.name) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch (error) {
+    console.error("Could not list audio files:", error);
+    return [];
+  }
+}
+
+function openSoundux(folder) {
+  try {
+    const config = {
+      data: {
+        tabs: [
+          {
+            id: 0,
+            name: basename(folder) || "Audios",
+            path: folder,
+            sounds: [],
+            sortMode: 1,
+          },
+        ],
+        width: 1280,
+        height: 720,
+        soundIdCounter: 0,
+      },
+      settings: {
+        audioBackend: 2, // PipeWire
+        viewMode: 0,
+        theme: 0,
+        language: null,
+        outputs: [],
+        selectedTab: 0,
+        localVolume: 70,
+        remoteVolume: 100,
+        allowMultipleOutputs: false,
+        useAsDefaultDevice: false,
+        muteDuringPlayback: false,
+        allowOverlapping: true,
+        minimizeToTray: true,
+        tabHotkeysOnly: false,
+        deleteToTrash: true,
+        pushToTalkKeys: [],
+        stopHotkey: [],
+      },
+    };
+
+    // Allow the Soundux Flatpak to read the selected folder.
+    runOnHost([
+      "flatpak",
+      "override",
+      "--user",
+      `--filesystem=${folder}`,
+      "io.github.Soundux",
+    ]);
+    runOnHost(["flatpak", "kill", "io.github.Soundux"]);
+
+    const writeScript =
+      'mkdir -p "$HOME/.var/app/io.github.Soundux/config/Soundux" && ' +
+      'cat > "$HOME/.var/app/io.github.Soundux/config/Soundux/config.json"';
+    const written = runOnHost(["sh", "-c", writeScript], {
+      input: JSON.stringify(config),
+    });
+    if (written.error || written.status !== 0) {
+      throw written.error || new Error(written.stderr || "failed to write config");
+    }
+
+    const command = hostArgs(["flatpak", "run", "io.github.Soundux"]);
+    const child = spawn(command[0], command.slice(1), {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+    return { ok: true };
+  } catch (error) {
+    console.error("Soundux could not be started:", error);
+    return { ok: false, error: String(error?.message || error) };
+  }
+}
+
 let downKeys = new Set();
 async function openMainWindow() {
   setStartup();
@@ -76,17 +210,73 @@ async function openMainWindow() {
     },
   });
 
+  // Optional companion UI (call-chat TTS reader and the audio-app picker).
+  // The site itself owns its interface, so this is injected on dom-ready and
+  // fails silently if a future site version removes the expected selectors.
+  const injectedDir = join(__dirname, "..", "injected");
+  let companionCss = "";
+  let companionJs = "";
+  try {
+    companionCss = readFileSync(join(injectedDir, "vanilla-theme.css"), "utf8");
+    companionJs = readFileSync(join(injectedDir, "enhancements.js"), "utf8");
+  } catch (error) {
+    console.error("Companion UI files are missing:", error);
+  }
+  mainWindow.webContents.on("dom-ready", () => {
+    if (companionCss) {
+      mainWindow.webContents.insertCSS(companionCss).catch((error) =>
+        console.error("Could not inject companion CSS:", error),
+      );
+    }
+    if (companionJs) {
+      mainWindow.webContents.executeJavaScript(companionJs).catch((error) =>
+        console.error("Could not inject companion script:", error),
+      );
+    }
+  });
+
   const sess = mainWindow.webContents.session;
 
   const appLoopback = createAppLoopback();
 
   sess.setDisplayMediaRequestHandler(async (request, callback) => {
-    callback({
-      video: desktopCaptureSource,
-      audio: request.audioRequested ? "loopback" : undefined,
-    });
-    desktopCaptureSource = null;
-    desktopCaptureSources = null;
+    // On Wayland, getSources() opens the xdg-desktop-portal picker. Keep it
+    // to one portal invocation per getDisplayMedia() call.
+    if (displayMediaRequestInProgress) {
+      callback({});
+      return;
+    }
+    displayMediaRequestInProgress = true;
+    try {
+      let video = desktopCaptureSource;
+      if (!video || video.id === "native-picker") {
+        const sources = await desktopCapturer.getSources({
+          types: ["screen", "window"],
+          thumbnailSize: { width: 0, height: 0 },
+        });
+        video = sources[0] || null;
+      }
+
+      let audio;
+      if (
+        request.audioRequested &&
+        !["off", "silent"].includes(getScreenShareAudioMode())
+      ) {
+        audio = "loopback";
+      }
+      callback({ video, audio });
+    } catch (error) {
+      console.error("Screen share failed:", error);
+      try {
+        callback({});
+      } catch (_) {}
+    } finally {
+      desktopCaptureSource = null;
+      desktopCaptureSources = null;
+      setTimeout(() => {
+        displayMediaRequestInProgress = false;
+      }, 1500);
+    }
   });
 
   mainWindow.webContents.ipc.on("relaunch-app", () => {
@@ -146,6 +336,136 @@ async function openMainWindow() {
     setStartup();
   });
 
+  mainWindow.webContents.ipc.handle(
+    "extra-get-setting",
+    (event, key, fallback) => {
+      const value = get(key);
+      return value === undefined ? fallback : value;
+    },
+  );
+  mainWindow.webContents.ipc.on("extra-set-setting", (event, key, value) =>
+    set(key, value),
+  );
+
+  mainWindow.webContents.ipc.handle("extra-choose-folder", async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+      title: "Audio folder for the call",
+      properties: ["openDirectory"],
+    });
+    return canceled ? null : filePaths[0];
+  });
+  mainWindow.webContents.ipc.handle("extra-list-audio-files", (event, folder) =>
+    listAudioFiles(String(folder || "")),
+  );
+  mainWindow.webContents.ipc.handle("extra-read-audio-file", (event, filePath) => {
+    const file = String(filePath || "");
+    if (!AUDIO_EXTENSIONS.test(file)) return null;
+    try {
+      const base64 = readFileSync(file).toString("base64");
+      return `data:${audioMime(file)};base64,${base64}`;
+    } catch (error) {
+      console.error("Could not read audio file:", error);
+      return null;
+    }
+  });
+  mainWindow.webContents.ipc.handle("extra-open-soundux", (event, folder) =>
+    openSoundux(String(folder || "")),
+  );
+
+  mainWindow.webContents.ipc.handle("get-tts-settings", () => ({
+    voice: getTtsVoice(),
+    locale: getTtsLocale(),
+  }));
+  mainWindow.webContents.ipc.on("set-tts-voice", (event, value) =>
+    setTtsVoice(String(value || "")),
+  );
+  mainWindow.webContents.ipc.on("set-tts-locale", (event, value) =>
+    setTtsLocale(String(value || "auto")),
+  );
+  mainWindow.webContents.ipc.handle("tts-speak", async (event, payload) => {
+    const opts = typeof payload === "string" ? { text: payload } : payload || {};
+    const text = String(opts.text || "")
+      .slice(0, 500)
+      .trim();
+    if (!text) return { ok: false, error: "empty" };
+
+    const rate = Math.max(0.7, Math.min(1.6, Number(opts.rate) || 1));
+    const ratePercent = Math.round((rate - 1) * 100);
+    const rateStr = `${ratePercent >= 0 ? "+" : ""}${ratePercent}%`;
+    const pitchValue = Number(opts.pitch);
+    const pitchHz = Number.isFinite(pitchValue)
+      ? Math.round((pitchValue - 50) / 5)
+      : 0;
+    const pitchStr = `${pitchHz >= 0 ? "+" : ""}${pitchHz}Hz`;
+
+    // Priority: explicit voice > panel setting > Nerimity/app locale.
+    const configuredLocale = String(getTtsLocale() || "auto").trim();
+    const locale =
+      opts.language ||
+      (configuredLocale && configuredLocale !== "auto" ? configuredLocale : "") ||
+      app.getLocale() ||
+      process.env.LANG ||
+      "";
+    const voice =
+      String(opts.voice || getTtsVoice() || "").trim() ||
+      resolveVoiceForLocale(locale);
+
+    try {
+      const mp3 = await synthesizeEdgeTts({
+        text,
+        voice,
+        rate: rateStr,
+        pitch: pitchStr,
+        timeoutMs: 30000,
+      });
+      if (!mp3?.length) {
+        return { ok: false, error: "service returned no audio" };
+      }
+      const played = await playAudioBuffer(mp3);
+      if (!played.ok) {
+        return {
+          ok: false,
+          error: `audio generated, but no player worked: ${played.error}`,
+          backend: `edge-tts/${voice}`,
+          voice,
+        };
+      }
+      return {
+        ok: true,
+        backend: `edge-tts/${voice}`,
+        voice,
+        locale: normalizeLocale(locale),
+        player: played.player,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        error: String(error?.message || error).slice(0, 300),
+        voice,
+      };
+    }
+  });
+
+  mainWindow.webContents.ipc.handle("get-screen-share-settings", () => ({
+    nativePicker: getNativeScreenPicker(),
+    audioMode: getScreenShareAudioMode(),
+  }));
+  mainWindow.webContents.ipc.on("set-native-screen-picker", (event, value) =>
+    setNativeScreenPicker(Boolean(value)),
+  );
+  mainWindow.webContents.ipc.on("set-screen-share-audio-mode", (event, value) =>
+    setScreenShareAudioMode(String(value || "full")),
+  );
+  mainWindow.webContents.ipc.handle("list-audio-apps", () =>
+    listPipeWireAudioApps(),
+  );
+  mainWindow.webContents.ipc.handle("start-audio-app-capture", (event, apps) =>
+    startPipeWireAudioCapture(apps),
+  );
+  mainWindow.webContents.ipc.handle("stop-audio-app-capture", () =>
+    stopPipeWireAudioCapture(),
+  );
+
   const sendKey = (e, down) => {
     mainWindow.webContents.send("global-key", { down, event: e });
   };
@@ -196,6 +516,9 @@ async function openMainWindow() {
       type: value ? "NOTIFICATION" : "NORMAL",
       count,
     });
+    getTray()?.setToolTip(
+      value ? `Nerimity — ${count || ""} notifications` : "Nerimity",
+    );
   });
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -214,6 +537,19 @@ async function openMainWindow() {
     "get-desktop-capture-sources",
     async (event) => {
       desktopCaptureSource = null;
+      // Listing sources on Wayland would open the portal picker immediately,
+      // before the user actually starts sharing. Use a placeholder and open
+      // the real picker from the display-media handler.
+      if (isWayland && getNativeScreenPicker()) {
+        desktopCaptureSources = null;
+        return [
+          {
+            id: "native-picker",
+            name: "Select window or screen (Wayland)",
+            thumbnailUrl: "",
+          },
+        ];
+      }
       const sources = await desktopCapturer.getSources({
         types: ["window", "screen"],
         thumbnailSize: { height: 400, width: 400 },
@@ -230,9 +566,8 @@ async function openMainWindow() {
   mainWindow.webContents.ipc.handle(
     "set-desktop-capture-source-id",
     async (event, id) => {
-      desktopCaptureSource = desktopCaptureSources.find(
-        (source) => source.id === id,
-      );
+      desktopCaptureSource =
+        desktopCaptureSources?.find((source) => source.id === id) || null;
       return true;
     },
   );

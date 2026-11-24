@@ -65,7 +65,7 @@ function setAppIcon(opts) {
   } else {
     opts.window?.setIcon(icon);
   }
-  opts.tray?.setImage(icon);
+  opts.tray?.setImage(icon.resize({ width: 24, height: 24 }));
 }
 
 export { appIcon, setAppIcon };
